@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.env
+venv/
+.env.*
+*.sqlite
+*.db
+.DS_Store
+
+# Flet/IDE
+.vscode/
+.idea/
