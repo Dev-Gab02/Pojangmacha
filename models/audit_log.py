@@ -1,3 +1,4 @@
+# models/audit_log.py
 from sqlalchemy import Column, Integer, String, DateTime
 from datetime import datetime
 from core.db import Base
@@ -9,6 +10,3 @@ class AuditLog(Base):
     user_email = Column(String, nullable=False)
     action = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
-
-    def __repr__(self):
-        return f"<AuditLog {self.user_email}: {self.action}>"
