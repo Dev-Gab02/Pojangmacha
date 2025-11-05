@@ -74,10 +74,8 @@ def admin_view(page: ft.Page):
         price = ft.TextField(label="Price", width=300)
         image_preview = ft.Image(src="", width=150, height=150, border_radius=10, fit=ft.ImageFit.CONTAIN)
 
-        # File picker for image upload
         file_picker = ft.FilePicker()
         page.overlay.append(file_picker)
-
         selected_image_path = {"path": ""}
 
         def on_file_picked(e):
@@ -97,7 +95,6 @@ def admin_view(page: ft.Page):
                 page.update()
 
         file_picker.on_result = on_file_picked
-
         upload_button = ft.ElevatedButton("Choose Image", on_click=lambda _: file_picker.pick_files(allow_multiple=False))
 
         def save_food(ev):
@@ -152,7 +149,6 @@ def admin_view(page: ft.Page):
 
         file_picker = ft.FilePicker()
         page.overlay.append(file_picker)
-
         selected_image_path = {"path": food.image or ""}
 
         def on_file_picked(e):
@@ -246,6 +242,58 @@ def admin_view(page: ft.Page):
         )
         return PlotlyChart(fig, expand=True)
 
+    # ===== Audit Logs =====
+    audit_table = ft.Column(scroll=ft.ScrollMode.AUTO)
+    user_filter = ft.TextField(label="Filter by User", width=200)
+    action_filter = ft.TextField(label="Action contains", width=200)
+    from_date = ft.TextField(label="From (YYYY-MM-DD)", width=150)
+    to_date = ft.TextField(label="To (YYYY-MM-DD)", width=150)
+
+    def load_audits():
+        audit_table.controls.clear()
+        query = db.query(AuditLog)
+        if user_filter.value:
+            query = query.filter(AuditLog.user_email.like(f"%{user_filter.value}%"))
+        if action_filter.value:
+            query = query.filter(AuditLog.action.like(f"%{action_filter.value}%"))
+        if from_date.value:
+            try:
+                start = datetime.strptime(from_date.value, "%Y-%m-%d")
+                query = query.filter(AuditLog.timestamp >= start)
+            except:
+                pass
+        if to_date.value:
+            try:
+                end = datetime.strptime(to_date.value, "%Y-%m-%d")
+                query = query.filter(AuditLog.timestamp <= end)
+            except:
+                pass
+        logs = query.order_by(AuditLog.timestamp.desc()).all()
+        if not logs:
+            audit_table.controls.append(ft.Text("No audit logs found.", color="grey"))
+        else:
+            for log in logs:
+                audit_table.controls.append(
+                    ft.Row([
+                        ft.Text(log.timestamp.strftime("%Y-%m-%d %H:%M:%S"), width=180),
+                        ft.Text(log.user_email, width=180),
+                        ft.Text(log.action, width=300),
+                    ])
+                )
+        page.update()
+
+    def apply_filters(e):
+        load_audits()
+
+    load_audits()
+
+    audit_tab = ft.Column([
+        ft.Row([user_filter, action_filter, from_date, to_date, ft.ElevatedButton("Apply Filters", on_click=apply_filters)]),
+        ft.Divider(),
+        audit_table,
+    ])
+
+    # ===== Logout =====
     def handle_logout(e):
         page.session.set("user", None)
         page.snack_bar = ft.SnackBar(ft.Text("You have been logged out."), open=True)
@@ -259,17 +307,13 @@ def admin_view(page: ft.Page):
         selected_index=0,
         tabs=[
             ft.Tab(text="Overview", content=ft.Column([refresh_overview()])),
-            ft.Tab(
-                text="Food Management",
-                content=ft.Column([
-                    ft.Row([
-                        ft.ElevatedButton("Add Food", on_click=open_add_food),
-                    ]),
-                    ft.Divider(),
-                    food_table
-                ])
-            ),
+            ft.Tab(text="Food Management", content=ft.Column([
+                ft.Row([ft.ElevatedButton("Add Food", on_click=open_add_food)]),
+                ft.Divider(),
+                food_table
+            ])),
             ft.Tab(text="Sales Analytics", content=generate_sales_chart()),
+            ft.Tab(text="Audit Logs", content=audit_tab),
         ],
         expand=1
     )
