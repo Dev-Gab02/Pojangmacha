@@ -1,33 +1,33 @@
 # core/session_manager.py
-import time
-import os
+import time, os
 from dotenv import load_dotenv
 
-# Load environment variables (SESSION_TIMEOUT in seconds)
 load_dotenv()
-SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "120"))  # default 5 min
 
+SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "60"))  # seconds for demo
 _sessions = {}
 
-def start_session(user_email: str):
-    _sessions[user_email] = {"last": time.time()}
+def start_session(email: str):
+    _sessions[email] = time.time()
 
-def refresh_session(user_email: str):
-    """Extend session on user activity."""
-    if user_email in _sessions:
-        _sessions[user_email]["last"] = time.time()
+def refresh_session(email: str):
+    """Update last active time on user interaction."""
+    if email in _sessions:
+        _sessions[email] = time.time()
 
-def is_session_active(user_email: str):
-    """Return (active, remaining_seconds)."""
-    session = _sessions.get(user_email)
-    if not session:
-        return False, 0
-    elapsed = time.time() - session["last"]
-    remaining = SESSION_TIMEOUT - elapsed
-    if remaining <= 0:
-        _sessions.pop(user_email, None)
-        return False, 0
-    return True, int(remaining)
+def is_session_active(email: str, return_remaining=False):
+    """Check if session still active; optionally return remaining seconds."""
+    last = _sessions.get(email)
+    if not last:
+        return (False, 0) if return_remaining else False
+    elapsed = time.time() - last
+    remaining = max(0, SESSION_TIMEOUT - elapsed)
+    if elapsed > SESSION_TIMEOUT:
+        _sessions.pop(email, None)
+        return (False, 0) if return_remaining else False
+    if return_remaining:
+        return (True, remaining)
+    return True
 
-def end_session(user_email: str):
-    _sessions.pop(user_email, None)
+def end_session(email: str):
+    _sessions.pop(email, None)
