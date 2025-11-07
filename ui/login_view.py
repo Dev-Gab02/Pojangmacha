@@ -33,6 +33,7 @@ def login_view(page: ft.Page):
 
     login_btn = ft.ElevatedButton("Sign In", on_click=handle_login)
     signup_btn = ft.TextButton("Don't have an account? Sign Up", on_click=lambda e: page.go("/signup"))
+    forgot_password_btn = ft.TextButton("Forgot Password?", on_click=lambda e: page.go("/reset_password"))
 
     page.clean()
     page.add(
@@ -43,6 +44,7 @@ def login_view(page: ft.Page):
                 password,
                 login_btn,
                 message,
+                forgot_password_btn,
                 signup_btn
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,

@@ -4,6 +4,7 @@ from models.user import User
 from models.food_item import FoodItem
 from models.order import Order, OrderItem
 from models.audit_log import AuditLog
+from models.password_reset import PasswordReset
 from core.user_service import create_default_admin
 
 def init_db():

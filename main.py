@@ -5,6 +5,7 @@ from ui.login_view import login_view
 from ui.signup_view import signup_view
 from ui.home_view import home_view
 from ui.admin_view import admin_view
+from ui.reset_password_view import reset_password_view
 
 SESSION_CHECK_INTERVAL = 5  # seconds between checks
 WARNING_THRESHOLD = 30      # show alert 30 s before logout
@@ -67,6 +68,7 @@ def main(page: ft.Page):
         elif page.route == "/signup": signup_view(page)
         elif page.route == "/home": home_view(page)
         elif page.route == "/admin": admin_view(page)
+        elif page.route == "/reset_password": reset_password_view(page)
         else: page.go("/login")
 
     page.on_route_change = route_change
