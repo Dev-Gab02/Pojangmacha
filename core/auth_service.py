@@ -1,71 +1,71 @@
 # core/auth_service.py
-# Authentication helpers: bcrypt hashing, verify, create_user, authenticate_user
 import bcrypt
+import secrets
 import time
 from sqlalchemy.orm import Session
 from models.user import User
+from models.audit_log import AuditLog
 
-# Optional simple lockout storage (in-memory demo)
+# --- In-memory attempt tracking ---
 _failed_attempts = {}
-LOCKOUT_THRESHOLD = 5
-LOCKOUT_TIME = 60  # seconds
+
+LOCKOUT_THRESHOLD = 3        # Number of attempts before lock
+LOCKOUT_TIME = 60            # 60 seconds lock
 
 def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
-    return hashed.decode("utf-8")
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
-def verify_password(password: str, hashed_password: str) -> bool:
+def verify_password(password: str, hashed: str) -> bool:
     try:
-        return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
+        return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
     except Exception:
         return False
 
-def create_user(db: Session, full_name: str, email: str, phone: str, password: str, role: str = "customer"):
-    """
-    Create a new user. Returns (user, message).
-    If email exists returns (None, "Email already exists").
-    """
-    existing = db.query(User).filter(User.email == email).first()
-    if existing:
-        return None, "Email already exists."
+def create_user(db: Session, full_name, email, phone, password, role="customer"):
+    if db.query(User).filter(User.email == email).first():
+        return None
     user = User(
-        full_name=full_name.strip(),
-        email=email.strip().lower(),
-        phone=(phone.strip() if phone else None),
+        full_name=full_name,
+        email=email,
+        phone=phone,
         password_hash=hash_password(password),
         role=role
     )
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user, "Account created."
+    return user
 
 def authenticate_user(db: Session, email: str, password: str):
-    """
-    Authenticate user. Returns (user, message).
-    Implements a simple lockout after repeated failures (in-memory demo).
-    """
+    """Authenticate user with throttling and logging"""
     now = time.time()
-    key = email.strip().lower()
-    info = _failed_attempts.get(key)
+    info = _failed_attempts.get(email)
+
+    # Lockout check
     if info and info["count"] >= LOCKOUT_THRESHOLD and now - info["last"] < LOCKOUT_TIME:
-        wait = LOCKOUT_TIME - int(now - info["last"])
-        return None, f"Account locked. Try again in {wait}s."
+        remaining = int(LOCKOUT_TIME - (now - info["last"]))
+        return None, f"Account locked. Try again in {remaining}s."
 
-    user = db.query(User).filter(User.email == key).first()
-    if not user:
-        _failed_attempts[key] = {"count": (info["count"] + 1 if info else 1), "last": now}
-        remaining = max(0, LOCKOUT_THRESHOLD - _failed_attempts[key]["count"])
-        return None, f"Invalid credentials. {remaining} attempts left."
+    user = db.query(User).filter(User.email == email).first()
 
-    if not verify_password(password, user.password_hash):
-        _failed_attempts[key] = {"count": (info["count"] + 1 if info else 1), "last": now}
-        remaining = max(0, LOCKOUT_THRESHOLD - _failed_attempts[key]["count"])
+    # Verify credentials
+    if not user or not verify_password(password, user.password_hash):
+        _failed_attempts[email] = {
+            "count": (info["count"] + 1 if info else 1),
+            "last": now
+        }
+        remaining = LOCKOUT_THRESHOLD - _failed_attempts[email]["count"]
+        remaining = max(0, remaining)
+        db.add(AuditLog(user_email=email, action="Failed login attempt"))
+        db.commit()
+
         if remaining == 0:
-            return None, "Account locked due to too many failed attempts."
+            return None, "Too many failed attempts. Account temporarily locked."
         return None, f"Invalid credentials. {remaining} attempts left."
 
-    # success -> clear failures
-    _failed_attempts.pop(key, None)
+    # Success
+    _failed_attempts.pop(email, None)
+    db.add(AuditLog(user_email=email, action="Successful login"))
+    db.commit()
     return user, "Login successful."
