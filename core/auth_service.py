@@ -1,157 +1,114 @@
 # core/auth_service.py
-import bcrypt
-import secrets
-import time
-from datetime import datetime
+import bcrypt, time
 from sqlalchemy.orm import Session
 from models.user import User
-from models.audit_log import AuditLog
-from models.password_reset import PasswordReset
+from datetime import datetime, timedelta
+import secrets
 
-# --- In-memory attempt tracking ---
+# in-memory stores for demo
 _failed_attempts = {}
+_reset_tokens = {}
 
-LOCKOUT_THRESHOLD = 3        # Number of attempts before lock
-LOCKOUT_TIME = 60            # 60 seconds lock
+LOCKOUT_THRESHOLD = 3        # attempts
+LOCKOUT_TIME = 60            # seconds
+RESET_TOKEN_EXPIRY = 600     # 10 minutes
 
 def hash_password(password: str) -> str:
-    """Hash password using bcrypt"""
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 def verify_password(password: str, hashed: str) -> bool:
-    """Verify password against hash"""
     try:
         return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
     except Exception:
         return False
     
-def create_password_reset(db, email: str):
-    """Create password reset token for user"""
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
-        return None, "Email not registered."
-
-    token = secrets.token_urlsafe(16)
-    reset_entry = PasswordReset(
+def create_user_from_google(db: Session, email: str, full_name: str, picture: str = None):
+    """
+    Create or get user from Google OAuth
+    If user exists, return it. If not, create new user.
+    """
+    # Check if user already exists
+    existing_user = db.query(User).filter(User.email == email).first()
+    if existing_user:
+        print(f"User {email} already exists - logging in")
+        return existing_user
+    
+    # Create new user with random password (they'll use Google login)
+    random_password = secrets.token_urlsafe(32)
+    hashed_pwd = hash_password(random_password)
+    
+    new_user = User(
         email=email,
-        token=token,
-        expires_at=PasswordReset.generate_expiry(10)
+        password_hash=hashed_pwd,
+        full_name=full_name,
+        phone="",  # Optional for Google users
+        role="customer",
+        created_at=datetime.utcnow()
     )
-    db.add(reset_entry)
+    
+    db.add(new_user)
     db.commit()
-    db.add(AuditLog(user_email=email, action="Requested password reset"))
-    db.commit()
-    return token, "Password reset link generated (token logged)."
-
-def verify_reset_token(db, token: str):
-    """Verify if reset token is valid and not expired"""
-    entry = db.query(PasswordReset).filter(PasswordReset.token == token).first()
-    if not entry:
-        return None, "Invalid or expired token."
-    if datetime.utcnow() > entry.expires_at:
-        return None, "Token has expired."
-    return entry.email, "Token verified."
-
-def reset_password_with_token(db, token: str, new_password: str):
-    """Reset password using valid token"""
-    email, msg = verify_reset_token(db, token)
-    if not email:
-        return False, msg
+    db.refresh(new_user)
     
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
-        return False, "User not found."
-    
-    # Update password
-    user.password_hash = hash_password(new_password)
-    db.commit()
-    
-    # Mark token as used by deleting it
-    entry = db.query(PasswordReset).filter(PasswordReset.token == token).first()
-    if entry:
-        db.delete(entry)
-        db.commit()
-    
-    db.add(AuditLog(user_email=email, action="Password reset completed"))
-    db.commit()
-    
-    return True, "Password reset successfully."
+    print(f"Created new Google user: {email}")
+    return new_user
 
 def create_user(db: Session, full_name, email, phone, password, role="customer"):
-    """Create new user account - Returns tuple (user, message)"""
-    # Check if user already exists
     if db.query(User).filter(User.email == email).first():
-        return None, "Email already registered."
-    
-    # Create new user
-    user = User(
-        full_name=full_name,
-        email=email,
-        phone=phone,
-        password_hash=hash_password(password),
-        role=role,
-        is_active=True
-    )
+        return None
+    user = User(full_name=full_name, email=email, phone=phone,
+                password_hash=hash_password(password), role=role)
     db.add(user)
     db.commit()
     db.refresh(user)
-    
-    # Log the registration
-    db.add(AuditLog(user_email=email, action="User registered"))
-    db.commit()
-    
-    return user, "Account created successfully."
+    return user
 
-def authenticate_user(db: Session, email: str, password: str):
-    """Authenticate user with throttling and logging - Returns tuple (user, message)"""
+def authenticate_user(db: Session, email, password):
+    """Return (user, message). message is helpful for UI."""
     now = time.time()
     info = _failed_attempts.get(email)
-
-    # Lockout check
     if info and info["count"] >= LOCKOUT_THRESHOLD and now - info["last"] < LOCKOUT_TIME:
-        remaining = int(LOCKOUT_TIME - (now - info["last"]))
-        return None, f"Account locked. Try again in {remaining}s."
+        wait = LOCKOUT_TIME - int(now - info["last"])
+        return None, f"Account locked. Try again in {wait}s."
 
     user = db.query(User).filter(User.email == email).first()
-
-    # Check if user exists and is active
-    if not user:
-        _failed_attempts[email] = {
-            "count": (info["count"] + 1 if info else 1),
-            "last": now
-        }
-        remaining = LOCKOUT_THRESHOLD - _failed_attempts[email]["count"]
-        remaining = max(0, remaining)
-        db.add(AuditLog(user_email=email, action="Failed login attempt - user not found"))
-        db.commit()
-        
+    if not user or not verify_password(password, user.password_hash):
+        _failed_attempts[email] = {"count": (info["count"] + 1 if info else 1), "last": now}
+        remaining = max(0, LOCKOUT_THRESHOLD - _failed_attempts[email]["count"])
         if remaining == 0:
-            return None, "Too many failed attempts. Account temporarily locked."
+            return None, "Account locked due to too many failed attempts."
         return None, f"Invalid credentials. {remaining} attempts left."
-    
-    if not user.is_active:
-        db.add(AuditLog(user_email=email, action="Login attempt on inactive account"))
-        db.commit()
-        return None, "Account is disabled. Contact administrator."
-
-    # Verify password
-    if not verify_password(password, user.password_hash):
-        _failed_attempts[email] = {
-            "count": (info["count"] + 1 if info else 1),
-            "last": now
-        }
-        remaining = LOCKOUT_THRESHOLD - _failed_attempts[email]["count"]
-        remaining = max(0, remaining)
-        db.add(AuditLog(user_email=email, action="Failed login attempt - wrong password"))
-        db.commit()
-
-        if remaining == 0:
-            return None, "Too many failed attempts. Account temporarily locked."
-        return None, f"Invalid credentials. {remaining} attempts left."
-
-    # Success
+    # success
     _failed_attempts.pop(email, None)
-    db.add(AuditLog(user_email=email, action="Successful login"))
+    user.failed_attempts = 0
+    user.is_locked = 0
+    user.last_login = None
+    db.add(user)
     db.commit()
     return user, "Login successful."
+
+def generate_reset_token(email: str):
+    token = secrets.token_hex(4)
+    _reset_tokens[email] = {"token": token, "time": time.time()}
+    # token would normally be emailed; print to console for demo
+    print(f"[PASSWORD RESET] Token for {email}: {token}")
+    return token
+
+def verify_reset_token(db: Session, email: str, token: str, new_password: str):
+    record = _reset_tokens.get(email)
+    if not record:
+        return False
+    if record["token"] != token:
+        return False
+    if time.time() - record["time"] > RESET_TOKEN_EXPIRY:
+        _reset_tokens.pop(email, None)
+        return False
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return False
+    user.password_hash = hash_password(new_password)
+    db.add(user)
+    db.commit()
+    _reset_tokens.pop(email, None)
+    return True
