@@ -1,109 +1,66 @@
 # ui/reset_password_view.py
 import flet as ft
 from core.db import SessionLocal
-from core.auth_service import create_password_reset, reset_password_with_token
+from core.auth_service import generate_reset_token, verify_reset_token
 
 def reset_password_view(page: ft.Page):
-    db = SessionLocal()
     page.title = "Reset Password - Pojangmacha"
+    db = SessionLocal()
 
-    email_field = ft.TextField(label="Registered Email", width=320)
-    token_field = ft.TextField(label="Reset Token (Check console/email)", width=320, visible=False)
-    new_password = ft.TextField(label="New Password", password=True, can_reveal_password=True, width=320, visible=False)
-    status_text = ft.Text(value="", color="red")
-    
-    reset_btn = ft.ElevatedButton("Reset with Token", visible=False, width=320)
+    email = ft.TextField(label="Email", width=300)
+    token = ft.TextField(label="Reset Token", width=300)
+    new_password = ft.TextField(label="New Password", password=True, can_reveal_password=True, width=300)
+    confirm_password = ft.TextField(label="Confirm Password", password=True, can_reveal_password=True, width=300)
+    message = ft.Text("", color="red")
 
-    def handle_request(e):
-        if not email_field.value or "@" not in email_field.value:
-            status_text.value = "❌ Please enter a valid email address"
-            status_text.color = "red"
-            page.update()
-            return
-            
-        token, msg = create_password_reset(db, email_field.value)
-        if token:
-            status_text.value = f"✅ {msg}\n\n🔑 Your Token: {token}\n\n(Save this token to reset your password)"
-            status_text.color = "green"
-            token_field.visible = True
-            new_password.visible = True
-            reset_btn.visible = True
+    # Step 1: Request reset token
+    def request_token(e):
+        if not email.value.strip():
+            message.value = "Please enter your email."
+            message.color = "red"
         else:
-            status_text.value = f"❌ {msg}"
-            status_text.color = "red"
+            token_value = generate_reset_token(email.value.strip())
+            message.value = f"Reset token sent (check console): {token_value}"
+            message.color = "green"
         page.update()
 
-    def handle_reset(e):
-        if not token_field.value or not new_password.value:
-            status_text.value = "❌ Please enter token and new password"
-            status_text.color = "red"
-            page.update()
-            return
-        
-        if len(new_password.value) < 6:
-            status_text.value = "❌ Password must be at least 6 characters"
-            status_text.color = "red"
-            page.update()
-            return
-            
-        success, msg = reset_password_with_token(db, token_field.value, new_password.value)
-        if success:
-            status_text.value = f"✅ {msg}\nRedirecting to login..."
-            status_text.color = "green"
-            page.update()
-            import time
-            time.sleep(2)
-            page.go("/login")
+    # Step 2: Confirm password reset
+    def reset_password(e):
+        if not all([email.value, token.value, new_password.value, confirm_password.value]):
+            message.value = "All fields are required."
+            message.color = "red"
+        elif new_password.value != confirm_password.value:
+            message.value = "Passwords do not match."
+            message.color = "red"
+        elif len(new_password.value) < 6:
+            message.value = "Password must be at least 6 characters."
+            message.color = "red"
         else:
-            status_text.value = f"❌ {msg}"
-            status_text.color = "red"
-            page.update()
-
-    reset_btn.on_click = handle_reset
-
-    request_btn = ft.ElevatedButton(
-        "Request Reset Token", 
-        on_click=handle_request,
-        width=320,
-        style=ft.ButtonStyle(
-            color=ft.Colors.WHITE,
-            bgcolor=ft.Colors.ORANGE_700,
-        )
-    )
+            ok = verify_reset_token(db, email.value.strip(), token.value.strip(), new_password.value)
+            if ok:
+                message.value = "✅ Password reset successfully! You can now log in."
+                message.color = "green"
+            else:
+                message.value = "❌ Invalid or expired token."
+                message.color = "red"
+        page.update()
 
     page.clean()
     page.add(
-        ft.Container(
-            content=ft.Column(
-                [
-                    ft.Container(height=30),
-                    ft.Icon(ft.Icons.LOCK_RESET, size=50, color=ft.Colors.ORANGE_700),
-                    ft.Text("Reset Password", size=26, weight="bold", color=ft.Colors.ORANGE_700),
-                    ft.Text("Enter your registered email to receive a reset token", 
-                            size=14, color="grey", text_align=ft.TextAlign.CENTER),
-                    ft.Container(height=10),
-                    email_field,
-                    request_btn,
-                    ft.Container(height=10),
-                    status_text,
-                    ft.Divider(height=1, thickness=1, visible=False),
-                    token_field,
-                    new_password,
-                    reset_btn,
-                    ft.Container(height=10),
-                    ft.Divider(height=1, thickness=1),
-                    ft.TextButton(
-                        "← Back to Login", 
-                        on_click=lambda e: page.go("/login")
-                    ),
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                alignment=ft.MainAxisAlignment.CENTER,
-                scroll=ft.ScrollMode.AUTO,
-                spacing=10
-            ),
-            padding=20,
-            alignment=ft.alignment.center,
-            expand=True
+        ft.Column(
+            [
+                ft.Text("🔐 Reset Password", size=24, weight="bold"),
+                email,
+                ft.Row([ft.ElevatedButton("Request Token", on_click=request_token)]),
+                token,
+                new_password,
+                confirm_password,
+                ft.Row([ft.ElevatedButton("Reset Password", on_click=reset_password)]),
+                message,
+                ft.TextButton("Back to Login", on_click=lambda e: page.go("/login"))
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            alignment=ft.MainAxisAlignment.CENTER,
+            scroll=ft.ScrollMode.AUTO
         )
     )
