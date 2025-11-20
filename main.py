@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-
-# main.py
-import flet as ft, threading, time
-from core.session_manager import start_session, is_session_active, refresh_session, end_session
-=======
 import os
 import threading
 import time
@@ -25,7 +19,6 @@ from models.login_attempt import LoginAttempt
 from core.session_manager import start_session, end_session, is_session_active, refresh_session
 
 # Import views
->>>>>>> update/session-rework
 from ui.login_view import login_view
 from ui.signup_view import signup_view
 from ui.home_view import home_view
