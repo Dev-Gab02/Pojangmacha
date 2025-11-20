@@ -1,13 +1,8 @@
-# Python
-__pycache__/
-*.pyc
+# local environment
 .env
-venv/
-.env.*
-*.sqlite
-*.db
-.DS_Store
-
-# Flet/IDE
-.vscode/
-.idea/
+*.pyc
+__pycache__/
+assets/uploads/foods/
+pojangmacha.db
+credentials.json
+token.json
