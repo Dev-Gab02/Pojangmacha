@@ -19,11 +19,12 @@ from models.login_attempt import LoginAttempt
 from core.session_manager import start_session, end_session, is_session_active, refresh_session
 
 # Import views
+from ui.splash_view import splash_view  # ADD THIS
 from ui.login_view import login_view
 from ui.signup_view import signup_view
 from ui.home_view import home_view
 from ui.admin_view import admin_view
-from ui.analytics_view import analytics_view  # ADD THIS LINE
+from ui.analytics_view import analytics_view
 from ui.order_history_view import order_history_view
 from ui.profile_view import profile_view
 from ui.reset_password_view import reset_password_view
@@ -39,6 +40,9 @@ def main(page: ft.Page):
 
     if not page.session.contains_key("user"):
         page.session.set("user", None)
+
+    # Track if splash has been shown
+    splash_shown = {"value": False}
 
     # Session monitor control
     monitor_active = {"value": False}
@@ -136,7 +140,7 @@ def main(page: ft.Page):
         warning_dialog_shown["value"] = True
         
         countdown_text = ft.Text(
-            f"⏱️ {int(remaining_seconds)}s",
+            f"{int(remaining_seconds)}s",
             size=40,
             weight="bold",
             color="orange"
@@ -157,8 +161,7 @@ def main(page: ft.Page):
         warning_dlg = ft.AlertDialog(
             modal=True,
             title=ft.Row([
-                ft.Icon(ft.Icons.WARNING_AMBER, color="orange", size=30),
-                ft.Text("⚠️ Session Expiring", size=20, weight="bold")
+                ft.Text("Session Expiring", size=20, weight="bold")
             ]),
             content=ft.Container(
                 content=ft.Column([
@@ -220,7 +223,7 @@ def main(page: ft.Page):
                         print("⏱️ Countdown ended - session expired")
                         break
                     
-                    countdown_text.value = f"⏱️ {int(remaining)}s"
+                    countdown_text.value = f"{int(remaining)}s"
                     original_update()  # Use original update
                     
                 except Exception as ex:
@@ -336,6 +339,18 @@ def main(page: ft.Page):
 
     # route change handler
     def route_change(e):
+        # Show splash screen only on first load
+        if not splash_shown["value"]:
+            splash_shown["value"] = True
+            
+            def on_splash_complete():
+                """Called after splash screen finishes"""
+                print("✅ Splash screen completed")
+                page.go("/login")
+            
+            splash_view(page, on_splash_complete)
+            return
+        
         page.clean()
         current_user = page.session.get("user")
 
@@ -411,7 +426,7 @@ def main(page: ft.Page):
             page.go("/login")
 
     page.on_route_change = route_change
-    page.go("/login")
+    page.go("/") 
 
 if __name__ == "__main__":
     ft.app(target=main)
