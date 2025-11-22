@@ -23,6 +23,7 @@ from ui.login_view import login_view
 from ui.signup_view import signup_view
 from ui.home_view import home_view
 from ui.admin_view import admin_view
+from ui.analytics_view import analytics_view  # ADD THIS LINE
 from ui.order_history_view import order_history_view
 from ui.profile_view import profile_view
 from ui.reset_password_view import reset_password_view
@@ -396,6 +397,8 @@ def main(page: ft.Page):
             home_view(page)
         elif page.route == "/admin":
             admin_view(page)
+        elif page.route == "/analytics":
+            analytics_view(page)
         elif page.route == "/orders":
             order_history_view(page)
         elif page.route == "/profile":

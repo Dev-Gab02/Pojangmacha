@@ -885,7 +885,10 @@ def admin_view(page: ft.Page):
     load_orders()
     load_users()
 
-    # Logout button
+    # Navigation buttons
+    def goto_analytics(e):
+        page.go("/analytics")
+    
     def logout_user(e):
         page.session.set("user", None)
         page.snack_bar = ft.SnackBar(ft.Text("Logged out successfully."), open=True)
@@ -897,11 +900,22 @@ def admin_view(page: ft.Page):
             ft.Container(
                 content=ft.Row([
                     ft.Text("🔧 Admin Panel", size=24, weight="bold"),
-                    ft.ElevatedButton(
-                        "Logout",
-                        icon=ft.Icons.LOGOUT,
-                        on_click=logout_user
-                    )
+                    ft.Row([
+                        ft.ElevatedButton(
+                            "📊 Analytics",
+                            icon=ft.Icons.ANALYTICS,
+                            on_click=goto_analytics,
+                            style=ft.ButtonStyle(
+                                bgcolor="purple700",
+                                color="white"
+                            )
+                        ),
+                        ft.ElevatedButton(
+                            "Logout",
+                            icon=ft.Icons.LOGOUT,
+                            on_click=logout_user
+                        )
+                    ], spacing=10)
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 padding=10,
                 bgcolor="blue50",
