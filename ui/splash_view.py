@@ -5,38 +5,34 @@ import threading
 def splash_view(page: ft.Page, on_complete):
     """
     Display splash screen with logo for 3 seconds
-    Args:
-        page: Flet page object
-        on_complete: Callback function to execute after splash
+    Mobile optimized: 400x700
     """
     page.title = "Pojangmacha"
     
-    # Logo image - centered only
     logo = ft.Image(
         src="assets/logo.jpg",
-        width=400,
-        height=400,
+        width=300,
+        height=300,
         fit=ft.ImageFit.CONTAIN
     )
     
-    # Splash container - matches logo background color
     splash_container = ft.Container(
         content=ft.Column([
             logo
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         alignment=ft.MainAxisAlignment.CENTER),
-        bgcolor="#FEB23F",  # Exact orange from your logo
+        bgcolor="#FEB23F",
         expand=True,
-        alignment=ft.alignment.center
+        alignment=ft.alignment.center,
+        width=400,
+        height=700
     )
     
-    # Display splash screen
     page.clean()
     page.add(splash_container)
     page.update()
     
-    # Wait 3 seconds then navigate to login
     def splash_timer():
         time.sleep(3)
         on_complete()

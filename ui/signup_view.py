@@ -12,17 +12,17 @@ def signup_view(page: ft.Page):
     db = SessionLocal()
 
     # Step 1: Registration form
-    full_name = ft.TextField(label="Full Name", width=300)
-    email = ft.TextField(label="Email", width=300)
-    phone = ft.TextField(label="Phone Number", width=300)
-    password = ft.TextField(label="Password", password=True, can_reveal_password=True, width=300)
-    confirm_password = ft.TextField(label="Confirm Password", password=True, can_reveal_password=True, width=300)
+    full_name = ft.TextField(label="Full Name", width=350)
+    email = ft.TextField(label="Email", width=350)
+    phone = ft.TextField(label="Phone Number", width=350)
+    password = ft.TextField(label="Password", password=True, can_reveal_password=True, width=350)
+    confirm_password = ft.TextField(label="Confirm Password", password=True, can_reveal_password=True, width=350)
     message = ft.Text(value="", color="red")
 
     # Step 2: Email verification
     verification_code_input = ft.TextField(
         label="Enter 6-digit code",
-        width=300,
+        width=350,
         max_length=6,
         text_align=ft.TextAlign.CENTER,
         keyboard_type=ft.KeyboardType.NUMBER
@@ -194,21 +194,28 @@ def signup_view(page: ft.Page):
         """Show the signup form"""
         page.clean()
         page.add(
-            ft.Column([
-                ft.Text("Create Your Account", size=24, weight="bold"),
-                full_name,
-                email,
-                phone,
-                password,
-                confirm_password,
-                signup_btn,
-                divider_row,
-                google_btn,
-                message,
-                ft.TextButton("Already have an account? Sign In", on_click=lambda e: page.go("/login"))
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            alignment=ft.MainAxisAlignment.CENTER)
+            ft.Container(
+                content=ft.Column([
+                    ft.Container(height=40),
+                    ft.Text("Create Your Account", size=24, weight="bold"),
+                    ft.Container(height=10),
+                    full_name,
+                    email,
+                    phone,
+                    password,
+                    confirm_password,
+                    signup_btn,
+                    divider_row,
+                    google_btn,
+                    message,
+                    ft.TextButton("Already have an account? Sign In", on_click=lambda e: page.go("/login"))
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                scroll=ft.ScrollMode.AUTO),
+                width=400,
+                height=700,
+                padding=ft.padding.symmetric(horizontal=25)
+            )
         )
 
     def handle_google_signup(e):
@@ -263,7 +270,7 @@ def signup_view(page: ft.Page):
         thread = threading.Thread(target=google_auth_thread, daemon=True)
         thread.start()
 
-    signup_btn = ft.ElevatedButton("Send Verification Code", on_click=send_verification, width=300)
+    signup_btn = ft.ElevatedButton("Send Verification Code", on_click=send_verification, width=350)
     
     google_btn = ft.OutlinedButton(
         content=ft.Row([
@@ -274,7 +281,7 @@ def signup_view(page: ft.Page):
             ),
             ft.Text("Sign up with Google", size=14)
         ], spacing=10, alignment=ft.MainAxisAlignment.CENTER),
-        width=300,
+        width=350,
         height=45,
         on_click=handle_google_signup,
         style=ft.ButtonStyle(
@@ -287,6 +294,6 @@ def signup_view(page: ft.Page):
         ft.Container(expand=True, height=1, bgcolor="grey400"),
         ft.Text("OR", size=12, color="grey"),
         ft.Container(expand=True, height=1, bgcolor="grey400"),
-    ], spacing=10, width=300)
+    ], spacing=10, width=350)
 
     show_signup_form()

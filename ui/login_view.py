@@ -19,9 +19,10 @@ import time
 def login_view(page: ft.Page):
     page.title = "Login - Pojangmacha"
     db = SessionLocal()
+    MOBILE_WIDTH = 350
 
-    email = ft.TextField(label="Email", width=300)
-    password = ft.TextField(label="Password", password=True, can_reveal_password=True, width=300)
+    email = ft.TextField(label="Email", width=MOBILE_WIDTH)
+    password = ft.TextField(label="Password", password=True, can_reveal_password=True, width=MOBILE_WIDTH)
     message = ft.Text(value="", color="red")
     
     # Lockout UI elements
@@ -367,18 +368,29 @@ def login_view(page: ft.Page):
                 check_lockout_status()
         
         page.clean()
-        page.add(ft.Column([
-            ft.Text("Welcome Back", size=24, weight="bold"),
-            lockout_container,
-            email, 
-            password,
-            login_btn,
-            forgot_pass_btn,
-            divider_row,
-            google_btn,
-            message,
-            signup_btn  # Sign up button that gets disabled during lockout
-        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER))
+        page.add(
+            ft.Container(
+                content=ft.Column([
+                    ft.Container(height=40),  # Top spacing
+                    ft.Text("Welcome Back", size=24, weight="bold"),
+                    ft.Container(height=10),
+                    lockout_container,
+                    email, 
+                    password,
+                    login_btn,
+                    forgot_pass_btn,
+                    divider_row,
+                    google_btn,
+                    message,
+                    signup_btn
+                ], 
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                scroll=ft.ScrollMode.AUTO),  # Enable scrolling
+                width=400,
+                height=700,
+                padding=ft.padding.symmetric(horizontal=25)
+            )
+        )
 
     def handle_google_login(e):
         """Handle Google sign-in with real OAuth"""
@@ -706,7 +718,7 @@ def login_view(page: ft.Page):
         show_step_1()
         open_dialog(dlg)
 
-    login_btn = ft.ElevatedButton("Sign In", on_click=handle_login, width=300)
+    login_btn = ft.ElevatedButton("Sign In", on_click=handle_login, width=MOBILE_WIDTH)
     forgot_pass_btn = ft.TextButton("Forgot Password?", on_click=forgot_password_dialog)
     
     google_btn = ft.OutlinedButton(
@@ -718,7 +730,7 @@ def login_view(page: ft.Page):
             ),
             ft.Text("Continue with Google", size=14)
         ], spacing=10, alignment=ft.MainAxisAlignment.CENTER),
-        width=300,
+        width=MOBILE_WIDTH,
         height=45,
         on_click=handle_google_login,
         style=ft.ButtonStyle(
@@ -731,6 +743,6 @@ def login_view(page: ft.Page):
         ft.Container(expand=True, height=1, bgcolor="grey400"),
         ft.Text("OR", size=12, color="grey"),
         ft.Container(expand=True, height=1, bgcolor="grey400"),
-    ], spacing=10, width=300)
+    ], spacing=10, width=MOBILE_WIDTH)
 
     show_login_form()

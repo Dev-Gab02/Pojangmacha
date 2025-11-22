@@ -851,14 +851,16 @@ def profile_view(page: ft.Page):
     # Main layout with fixed footer - NO SPACING
     page.clean()
     page.add(
-        ft.Column([
-            # Header (changes based on mode)
-            header_container,
-            # Content (scrollable)
-            content_container,
-            # Footer (fixed) - NO SPACING
-            footer
-        ], expand=True, spacing=0)
+        ft.Container(
+            content=ft.Column([
+                header_container,
+                content_container,
+                footer
+            ], expand=True, spacing=0),
+            width=400,
+            height=700,
+            padding=0
+        )
     )
     
     # Initial build

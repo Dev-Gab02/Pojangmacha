@@ -47,20 +47,25 @@ def reset_password_view(page: ft.Page):
 
     page.clean()
     page.add(
-        ft.Column(
-            [
-                ft.Text("🔐 Reset Password", size=24, weight="bold"),
-                email,
-                ft.Row([ft.ElevatedButton("Request Token", on_click=request_token)]),
-                token,
-                new_password,
-                confirm_password,
-                ft.Row([ft.ElevatedButton("Reset Password", on_click=reset_password)]),
-                message,
-                ft.TextButton("Back to Login", on_click=lambda e: page.go("/login"))
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            alignment=ft.MainAxisAlignment.CENTER,
-            scroll=ft.ScrollMode.AUTO
+        ft.Container(
+            content=ft.Column(
+                [
+                    ft.Container(height=40),
+                    ft.Text("Reset Password", size=24, weight="bold"),
+                    email,
+                    ft.Row([ft.ElevatedButton("Request Token", on_click=request_token)]),
+                    token,
+                    new_password,
+                    confirm_password,
+                    ft.Row([ft.ElevatedButton("Reset Password", on_click=reset_password)]),
+                    message,
+                    ft.TextButton("Back to Login", on_click=lambda e: page.go("/login"))
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                scroll=ft.ScrollMode.AUTO
+            ),
+            width=400,
+            height=700,
+            padding=ft.padding.symmetric(horizontal=25)
         )
     )

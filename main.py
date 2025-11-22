@@ -19,7 +19,7 @@ from models.login_attempt import LoginAttempt
 from core.session_manager import start_session, end_session, is_session_active, refresh_session
 
 # Import views
-from ui.splash_view import splash_view  # ADD THIS
+from ui.splash_view import splash_view
 from ui.login_view import login_view
 from ui.signup_view import signup_view
 from ui.home_view import home_view
@@ -29,11 +29,17 @@ from ui.order_history_view import order_history_view
 from ui.profile_view import profile_view
 from ui.reset_password_view import reset_password_view
 
-SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "180"))  # 3 minutes
-SESSION_CHECK_INTERVAL = int(os.getenv("SESSION_CHECK_INTERVAL", "10"))  # Check every 10s
-WARNING_TIME = int(os.getenv("SESSION_WARNING_TIME", "60"))  # Warn 1 minute before
+SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "180"))
+SESSION_CHECK_INTERVAL = int(os.getenv("SESSION_CHECK_INTERVAL", "10"))
+WARNING_TIME = int(os.getenv("SESSION_WARNING_TIME", "60"))
 
 def main(page: ft.Page):
+    page.window.width = 400
+    page.window.height = 700
+    page.window.resizable = False
+    page.padding = 0
+    page.spacing = 0
+    
     page.title = "Pojangmacha"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.START
@@ -41,43 +47,32 @@ def main(page: ft.Page):
     if not page.session.contains_key("user"):
         page.session.set("user", None)
 
-    # Track if splash has been shown
     splash_shown = {"value": False}
-
-    # Session monitor control
     monitor_active = {"value": False}
     warning_dialog_shown = {"value": False}
     last_activity_logged = {"time": time.time()}
 
-    # helper to get current user email
     def current_email():
         u = page.session.get("user")
         return u.get("email") if u else None
 
     def close_warning_dialog():
-        """Close the warning dialog (thread-safe)"""
         try:
             if hasattr(page, "dialog") and page.dialog:
                 page.dialog.open = False
                 page.dialog = None
-            
             warning_dialog_shown["value"] = False
             page.update()
-                
         except Exception as ex:
             print(f"Warning dialog close error: {ex}")
 
-    # call this on any user activity to refresh server-side session timestamp
     def on_user_activity(e=None):
-        """Handle any user activity - refresh session"""
-        # Throttle logging (only log once per second to avoid spam)
         current_time = time.time()
         if current_time - last_activity_logged["time"] > 1.0:
             print(f"👆 User activity detected!")
             last_activity_logged["time"] = current_time
         
         try:
-            # If warning is shown, close it on activity
             if warning_dialog_shown["value"]:
                 print("✅ Closing warning due to user activity")
                 close_warning_dialog()
@@ -93,7 +88,6 @@ def main(page: ft.Page):
             except Exception as ex:
                 print(f"❌ refresh_session error: {ex}")
 
-    # Attach activity handlers to page
     try:
         if hasattr(page, "on_keyboard_event"):
             old_keyboard_handler = page.on_keyboard_event
@@ -118,11 +112,9 @@ def main(page: ft.Page):
     except Exception as ex:
         print(f"⚠️ Pointer click handler error: {ex}")
 
-    # Store original page.update to intercept all updates as activity
     original_update = page.update
     
     def activity_aware_update(*args, **kwargs):
-        """Intercept page updates as user activity"""
         email = current_email()
         if email and page.route not in ["/login", "/signup", "/"]:
             on_user_activity()
@@ -132,9 +124,8 @@ def main(page: ft.Page):
     print("✅ Page update interceptor installed")
 
     def show_warning_dialog(remaining_seconds):
-        """Show enhanced warning dialog with countdown"""
         if warning_dialog_shown["value"]:
-            return  # Already shown
+            return
         
         print(f"⚠️ Showing warning dialog with {remaining_seconds}s remaining")
         warning_dialog_shown["value"] = True
@@ -147,7 +138,6 @@ def main(page: ft.Page):
         )
         
         def stay_logged_in(e):
-            """User clicked to stay logged in"""
             email = current_email()
             if email:
                 refresh_session(email)
@@ -155,7 +145,6 @@ def main(page: ft.Page):
             close_warning_dialog()
         
         def logout_now(e):
-            """User chose to logout"""
             force_logout()
         
         warning_dlg = ft.AlertDialog(
@@ -204,14 +193,13 @@ def main(page: ft.Page):
         try:
             page.dialog = warning_dlg
             warning_dlg.open = True
-            original_update()  # Use original update to avoid recursion
+            original_update()
             print("✅ Warning dialog displayed")
         except Exception as ex:
             print(f"❌ Error showing warning dialog: {ex}")
             warning_dialog_shown["value"] = False
             return
         
-        # Update countdown every second
         def update_countdown():
             email = current_email()
             
@@ -224,7 +212,7 @@ def main(page: ft.Page):
                         break
                     
                     countdown_text.value = f"{int(remaining)}s"
-                    original_update()  # Use original update
+                    original_update()
                     
                 except Exception as ex:
                     print(f"Countdown update error: {ex}")
@@ -238,7 +226,6 @@ def main(page: ft.Page):
         countdown_thread.start()
 
     def force_logout():
-        """Force logout immediately"""
         print("🔴 FORCE LOGOUT INITIATED")
         
         email = current_email()
@@ -249,36 +236,28 @@ def main(page: ft.Page):
             except Exception as ex:
                 print(f"End session error: {ex}")
         
-        # Stop the monitor FIRST
         monitor_active["value"] = False
         print("🛑 Monitor deactivated")
         
         close_warning_dialog()
         
-        # Clear session
         page.session.set("user", None)
         print("🧹 User session cleared")
         
-        # Navigate to login
         page.go("/login")
         print("🔄 Redirected to login")
 
     def stop_session_monitor():
-        """Stop the session monitor thread"""
         monitor_active["value"] = False
         close_warning_dialog()
         print("🛑 Session monitor stopped")
 
     def start_session_monitor():
-        """Start or restart the session monitor thread"""
-        # Stop existing monitor if running
         if monitor_active["value"]:
             stop_session_monitor()
-            time.sleep(0.5)  # Wait for thread to stop
+            time.sleep(0.5)
         
-        # Reset warning dialog state
         warning_dialog_shown["value"] = False
-        
         monitor_active["value"] = True
         
         def session_monitor():
@@ -293,7 +272,6 @@ def main(page: ft.Page):
                     continue
                 
                 try:
-                    # Check session status
                     res = is_session_active(email, return_remaining=True)
                     if isinstance(res, tuple):
                         active, remaining = res
@@ -304,20 +282,17 @@ def main(page: ft.Page):
                     print(f"🔍 Session check: active={active}, remaining={remaining:.0f}s")
                     
                     if not active or remaining <= 0:
-                        # Session expired - STOP MONITOR IMMEDIATELY
                         print("❌ Session expired - logging out")
-                        monitor_active["value"] = False  # CRITICAL: Stop loop immediately
+                        monitor_active["value"] = False
                         
                         try:
                             end_session(email)
                         except Exception as ex:
                             print(f"End session error: {ex}")
                         
-                        # Force logout on main thread
                         force_logout()
-                        return  # EXIT THREAD
+                        return
                     
-                    # Show warning if time is running out
                     if remaining <= WARNING_TIME and remaining > 0:
                         if not warning_dialog_shown["value"]:
                             print(f"⚠️ Showing warning - {remaining:.0f}s remaining")
@@ -332,19 +307,15 @@ def main(page: ft.Page):
             
             print("🛑 Session monitor ended")
         
-        # Start new monitor thread
         thread = threading.Thread(target=session_monitor, daemon=True)
         thread.start()
         print("✅ New session monitor thread started")
 
-    # route change handler
     def route_change(e):
-        # Show splash screen only on first load
         if not splash_shown["value"]:
             splash_shown["value"] = True
             
             def on_splash_complete():
-                """Called after splash screen finishes"""
                 print("✅ Splash screen completed")
                 page.go("/login")
             
@@ -354,7 +325,6 @@ def main(page: ft.Page):
         page.clean()
         current_user = page.session.get("user")
 
-        # Handle authenticated routes
         if page.route not in ["/login", "/signup", "/logout", "/", "/reset_password"]:
             if not current_user:
                 page.snack_bar = ft.SnackBar(ft.Text("Please log in to continue."), open=True)
@@ -362,27 +332,22 @@ def main(page: ft.Page):
                 page.go("/login")
                 return
             
-            # User is authenticated - ensure session exists and start monitor
             email = current_user.get("email")
             if email:
                 try:
-                    # Check if session exists, if not create it
                     if not is_session_active(email):
                         start_session(email)
                         print(f"✅ Session created for {email}")
                     else:
-                        # Refresh on route change
                         refresh_session(email)
                         print(f"🔄 Session refreshed on route change for {email}")
                     
-                    # Start session monitor if not already running
                     if not monitor_active["value"]:
                         start_session_monitor()
                 
                 except Exception as ex:
                     print(f"Session initialization error: {ex}")
 
-        # Handle logout
         if page.route == "/logout":
             cur = page.session.get("user")
             if cur and cur.get("email"):
@@ -391,7 +356,6 @@ def main(page: ft.Page):
                 except Exception:
                     pass
             
-            # Stop monitor
             stop_session_monitor()
             
             page.session.set("user", None)
@@ -400,9 +364,7 @@ def main(page: ft.Page):
             page.go("/login")
             return
 
-        # Routing
         if page.route == "/login" or page.route == "/":
-            # Stop monitor when on login page
             stop_session_monitor()
             login_view(page)
         elif page.route == "/signup":
@@ -426,7 +388,7 @@ def main(page: ft.Page):
             page.go("/login")
 
     page.on_route_change = route_change
-    page.go("/") 
+    page.go("/")
 
 if __name__ == "__main__":
     ft.app(target=main)

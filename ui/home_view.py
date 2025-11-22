@@ -54,12 +54,9 @@ def home_view(page: ft.Page):
         """Add item to cart (stored in database)"""
         print(f"✅ DEBUG: Adding {item.name} to cart")
         
-        # Add to database
         add_to_cart(db, user_id, item.id, quantity=1)
-        
         update_cart_badge()
         
-        # Show success snackbar
         page.snack_bar = ft.SnackBar(
             content=ft.Row([
                 ft.Icon(ft.Icons.CHECK_CIRCLE, color="white"),
@@ -87,31 +84,32 @@ def home_view(page: ft.Page):
                     content=ft.Row([
                         ft.Image(
                             src=item.image, 
-                            width=100, 
-                            height=100, 
+                            width=80, 
+                            height=80, 
                             fit=ft.ImageFit.COVER, 
                             border_radius=8
                         ) if item.image and os.path.exists(item.image) else ft.Container(
-                            width=100, 
-                            height=100, 
+                            width=80, 
+                            height=80, 
                             bgcolor="grey300", 
                             border_radius=8
                         ),
                         ft.Column([
-                            ft.Text(item.name, weight="bold", size=18),
-                            ft.Text(item.description, size=12, color="grey700"),
-                            ft.Text(f"₱{item.price:.2f}", color="green", size=16, weight="bold"),
+                            ft.Text(item.name, weight="bold", size=14),
+                            ft.Text(item.description[:30] + "..." if len(item.description) > 30 else item.description, size=10, color="grey700"),
+                            ft.Text(f"₱{item.price:.2f}", color="green", size=14, weight="bold"),
                             ft.ElevatedButton(
-                                "Add to Cart",
+                                "Add",
                                 icon=ft.Icons.ADD_SHOPPING_CART,
                                 on_click=lambda e, it=item: add_to_cart_directly(it),
                                 style=ft.ButtonStyle(
                                     bgcolor="blue700",
                                     color="white"
-                                )
+                                ),
+                                height=35
                             )
-                        ], spacing=5)
-                    ], spacing=10)
+                        ], spacing=3, expand=True)
+                    ], spacing=8)
                 )
             )
             items_column.controls.append(item_card)
@@ -119,7 +117,7 @@ def home_view(page: ft.Page):
         if not items_column.controls:
             items_column.controls.append(
                 ft.Container(
-                    content=ft.Text("No items in this category yet.", size=16, color="grey", italic=True),
+                    content=ft.Text("No items in this category yet.", size=14, color="grey", italic=True),
                     padding=20,
                     alignment=ft.alignment.center
                 )
@@ -160,20 +158,17 @@ def home_view(page: ft.Page):
             page.go("/login")
             return
 
-        # Calculate total
         total = 0
         for cart_item in cart_items:
             food = db.query(FoodItem).filter(FoodItem.id == cart_item.food_id).first()
             if food:
                 total += food.price * cart_item.quantity
         
-        # Create order
         new_order = Order(user_id=user.id, total_price=total, status="Pending", created_at=datetime.utcnow())
         db.add(new_order)
         db.commit()
         db.refresh(new_order)
         
-        # Add order items
         for cart_item in cart_items:
             food = db.query(FoodItem).filter(FoodItem.id == cart_item.food_id).first()
             if food:
@@ -187,11 +182,9 @@ def home_view(page: ft.Page):
         
         db.commit()
         
-        # Clear cart
         db.query(Cart).filter(Cart.user_id == user_id).delete()
         db.commit()
         
-        # Audit log
         db.add(AuditLog(user_email=user.email, action=f"Placed order #{new_order.id}"))
         db.commit()
         
@@ -207,7 +200,6 @@ def home_view(page: ft.Page):
         """Show cart with items from database"""
         cart_column = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
         
-        # Get cart from database
         cart_items = get_user_cart(db, user_id)
         
         total = 0
@@ -232,7 +224,6 @@ def home_view(page: ft.Page):
                 food = db.query(FoodItem).filter(FoodItem.id == cart_item.food_id).first()
                 
                 if not food:
-                    # Item deleted - remove from cart
                     remove_from_cart(db, cart_item.id)
                     continue
                 
@@ -258,9 +249,9 @@ def home_view(page: ft.Page):
                                     border_radius=8
                                 ),
                                 ft.Column([
-                                    ft.Text(food.name, weight="bold", size=16),
-                                    ft.Text(f"₱{food.price:.2f} each", size=12, color="grey700"),
-                                    ft.Text(f"Subtotal: ₱{subtotal:.2f}", size=14, weight="bold", color="green"),
+                                    ft.Text(food.name, weight="bold", size=14),
+                                    ft.Text(f"₱{food.price:.2f} each", size=11, color="grey700"),
+                                    ft.Text(f"Subtotal: ₱{subtotal:.2f}", size=12, weight="bold", color="green"),
                                 ], spacing=2, expand=True),
                                 ft.Column([
                                     ft.Row([
@@ -268,68 +259,75 @@ def home_view(page: ft.Page):
                                             icon=ft.Icons.REMOVE,
                                             icon_size=16,
                                             on_click=lambda e, cid=cart_item.id: update_quantity(cid, -1),
-                                            tooltip="Decrease quantity"
+                                            tooltip="Decrease"
                                         ),
-                                        ft.Text(str(quantity), size=16, weight="bold"),
+                                        ft.Text(str(quantity), size=14, weight="bold"),
                                         ft.IconButton(
                                             icon=ft.Icons.ADD,
                                             icon_size=16,
                                             on_click=lambda e, cid=cart_item.id: update_quantity(cid, 1),
-                                            tooltip="Increase quantity"
+                                            tooltip="Increase"
                                         ),
-                                    ], spacing=5),
+                                    ], spacing=2),
                                     ft.IconButton(
                                         icon=ft.Icons.DELETE,
                                         icon_color="red",
-                                        icon_size=20,
-                                        tooltip="Remove from cart",
+                                        icon_size=18,
+                                        tooltip="Remove",
                                         on_click=lambda e, cid=cart_item.id: remove_item(cid)
                                     )
                                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-                            ], spacing=10, alignment=ft.MainAxisAlignment.START)
+                            ], spacing=8, alignment=ft.MainAxisAlignment.START)
                         )
                     )
                 )
         
         page.clean()
         page.add(
-            ft.Column([
-                ft.Container(
-                    content=ft.Row([
-                        ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=lambda e: home_view(page)),
-                        ft.Text("🛒 Your Cart", size=24, weight="bold"),
-                    ]),
-                    padding=10
-                ),
-                ft.Container(
-                    content=cart_column,
-                    expand=True,
-                    padding=10
-                ),
-                ft.Container(
-                    content=ft.Column([
-                        ft.Divider(),
-                        ft.Row([
-                            ft.Text(f"Total items: {len(cart_items)}", size=14),
-                            ft.Text(f"Total: ₱{total:.2f}", size=20, weight="bold"),
-                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                        ft.ElevatedButton(
-                            "Checkout",
-                            on_click=lambda e: checkout(),
-                            disabled=len(cart_items) == 0,
-                            style=ft.ButtonStyle(
-                                bgcolor="green700" if len(cart_items) > 0 else "grey",
-                                color="white"
-                            ),
-                            width=300,
-                            height=50
-                        )
-                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                    bgcolor="white",
-                    padding=15,
-                    shadow=ft.BoxShadow(blur_radius=10, color="grey300")
-                )
-            ], expand=True)
+            ft.Container(
+                content=ft.Column([
+                    ft.Container(
+                        content=ft.Row([
+                            ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=lambda e: home_view(page)),
+                            ft.Text("Your Cart", size=20, weight="bold"),
+                        ]),
+                        padding=10,
+                        bgcolor="white"
+                    ),
+                    ft.Container(
+                        content=cart_column,
+                        expand=True,
+                        padding=10,
+                        bgcolor="grey100"
+                    ),
+                    ft.Container(
+                        content=ft.Column([
+                            ft.Divider(),
+                            ft.Row([
+                                ft.Text(f"Items: {len(cart_items)}", size=14),
+                                ft.Text(f"Total: ₱{total:.2f}", size=18, weight="bold"),
+                            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                            ft.ElevatedButton(
+                                "Checkout",
+                                on_click=lambda e: checkout(),
+                                disabled=len(cart_items) == 0,
+                                style=ft.ButtonStyle(
+                                    bgcolor="green700" if len(cart_items) > 0 else "grey",
+                                    color="white"
+                                ),
+                                width=350,
+                                height=45
+                            )
+                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=8),
+                        bgcolor="white",
+                        padding=12,
+                        shadow=ft.BoxShadow(blur_radius=10, color="grey300")
+                    )
+                ], expand=True, spacing=0),
+                width=400,
+                height=700,
+                padding=0
+            )
         )
         page.update()
 
@@ -342,7 +340,7 @@ def home_view(page: ft.Page):
         if not results:
             items_column.controls.append(
                 ft.Container(
-                    content=ft.Text("No items found", size=16, color="grey"),
+                    content=ft.Text("No items found", size=14, color="grey"),
                     padding=20,
                     alignment=ft.alignment.center
                 )
@@ -355,31 +353,32 @@ def home_view(page: ft.Page):
                         content=ft.Row([
                             ft.Image(
                                 src=item.image, 
-                                width=100, 
-                                height=100, 
+                                width=80, 
+                                height=80, 
                                 fit=ft.ImageFit.COVER, 
                                 border_radius=8
                             ) if item.image and os.path.exists(item.image) else ft.Container(
-                                width=100, 
-                                height=100, 
+                                width=80, 
+                                height=80, 
                                 bgcolor="grey300", 
                                 border_radius=8
                             ),
                             ft.Column([
-                                ft.Text(item.name, weight="bold", size=18),
-                                ft.Text(item.description, size=12, color="grey700"),
-                                ft.Text(f"₱{item.price:.2f}", color="green", size=16, weight="bold"),
+                                ft.Text(item.name, weight="bold", size=14),
+                                ft.Text(item.description[:30] + "...", size=10, color="grey700"),
+                                ft.Text(f"₱{item.price:.2f}", color="green", size=14, weight="bold"),
                                 ft.ElevatedButton(
-                                    "Add to Cart",
+                                    "Add",
                                     icon=ft.Icons.ADD_SHOPPING_CART,
                                     on_click=lambda e, it=item: add_to_cart_directly(it),
                                     style=ft.ButtonStyle(
                                         bgcolor="blue700",
                                         color="white"
-                                    )
+                                    ),
+                                    height=35
                                 )
-                            ], spacing=5)
-                        ], spacing=10)
+                            ], spacing=3, expand=True)
+                        ], spacing=8)
                     )
                 )
                 items_column.controls.append(item_card)
@@ -395,7 +394,7 @@ def home_view(page: ft.Page):
         )
         
         recent_searches = page.session.get("recent_searches") or []
-        recent_column = ft.Column(spacing=8)
+        recent_column = ft.Column(spacing=6)
         recent_container = ft.Container()
         
         def remove_recent_search(search_term):
@@ -414,22 +413,21 @@ def home_view(page: ft.Page):
                     recent_column.controls.append(
                         ft.Container(
                             content=ft.Row([
-                                ft.Icon(ft.Icons.HISTORY, size=20, color="grey"),
-                                ft.Container(width=10),
-                                ft.Text(search_term, size=14, expand=True),
+                                ft.Icon(ft.Icons.HISTORY, size=18, color="grey"),
+                                ft.Text(search_term, size=13, expand=True),
                                 ft.IconButton(
                                     icon=ft.Icons.CLOSE,
-                                    icon_size=20,
+                                    icon_size=18,
                                     icon_color="grey",
                                     tooltip="Remove",
                                     on_click=lambda e, term=search_term: remove_recent_search(term)
                                 ),
-                            ], spacing=0, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                            padding=10,
+                            ], spacing=8, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                            padding=8,
                             on_click=lambda e, term=search_term: perform_search(term),
                             ink=True,
                             border_radius=8,
-                            bgcolor="grey900"
+                            bgcolor="grey100"
                         )
                     )
         
@@ -452,47 +450,46 @@ def home_view(page: ft.Page):
                 if not results:
                     search_results_column.controls.append(
                         ft.Container(
-                            content=ft.Text("No items found", size=16, color="grey"),
+                            content=ft.Text("No items found", size=14, color="grey"),
                             padding=20,
                             alignment=ft.alignment.center
                         )
                     )
                 else:
                     for item in results:
-                        item_card = ft.Card(
-                            content=ft.Container(
-                                padding=10,
-                                content=ft.Row([
-                                    ft.Image(
-                                        src=item.image, 
-                                        width=100, 
-                                        height=100, 
-                                        fit=ft.ImageFit.COVER, 
-                                        border_radius=8
-                                    ) if item.image and os.path.exists(item.image) else ft.Container(
-                                        width=100, 
-                                        height=100, 
-                                        bgcolor="grey300", 
-                                        border_radius=8
-                                    ),
-                                    ft.Column([
-                                        ft.Text(item.name, weight="bold", size=18),
-                                        ft.Text(item.description, size=12, color="grey700"),
-                                        ft.Text(f"₱{item.price:.2f}", color="green", size=16, weight="bold"),
-                                        ft.ElevatedButton(
-                                            "Add to Cart",
-                                            icon=ft.Icons.ADD_SHOPPING_CART,
-                                            on_click=lambda e, it=item: add_to_cart_directly(it),
-                                            style=ft.ButtonStyle(
-                                                bgcolor="blue700",
-                                                color="white"
+                        search_results_column.controls.append(
+                            ft.Card(
+                                content=ft.Container(
+                                    padding=10,
+                                    content=ft.Row([
+                                        ft.Image(
+                                            src=item.image, 
+                                            width=80, 
+                                            height=80, 
+                                            fit=ft.ImageFit.COVER, 
+                                            border_radius=8
+                                        ) if item.image and os.path.exists(item.image) else ft.Container(
+                                            width=80, 
+                                            height=80, 
+                                            bgcolor="grey300", 
+                                            border_radius=8
+                                        ),
+                                        ft.Column([
+                                            ft.Text(item.name, weight="bold", size=14),
+                                            ft.Text(item.description[:30] + "...", size=10, color="grey700"),
+                                            ft.Text(f"₱{item.price:.2f}", color="green", size=14, weight="bold"),
+                                            ft.ElevatedButton(
+                                                "Add",
+                                                icon=ft.Icons.ADD_SHOPPING_CART,
+                                                on_click=lambda e, it=item: add_to_cart_directly(it),
+                                                style=ft.ButtonStyle(bgcolor="blue700", color="white"),
+                                                height=35
                                             )
-                                        )
-                                    ], spacing=5)
-                                ], spacing=10)
+                                        ], spacing=3, expand=True)
+                                    ], spacing=8)
+                                )
                             )
                         )
-                        search_results_column.controls.append(item_card)
                 
                 recent_container.visible = False
                 page.update()
@@ -500,119 +497,112 @@ def home_view(page: ft.Page):
         footer = ft.Container(
             content=ft.Row([
                 ft.Column([
-                    ft.IconButton(
-                        icon=ft.Icons.RESTAURANT_MENU,
-                        tooltip="Food",
-                        on_click=lambda e: home_view(page)
-                    ),
+                    ft.IconButton(icon=ft.Icons.RESTAURANT_MENU, tooltip="Food", on_click=lambda e: home_view(page)),
                     ft.Text("Food", size=10, text_align=ft.TextAlign.CENTER)
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
                 
                 ft.Column([
-                    ft.IconButton(
-                        icon=ft.Icons.SEARCH,
-                        tooltip="Search",
-                        icon_color="blue700"
-                    ),
+                    ft.IconButton(icon=ft.Icons.SEARCH, tooltip="Search", icon_color="blue700"),
                     ft.Text("Search", size=10, text_align=ft.TextAlign.CENTER, color="blue700")
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
                 
                 ft.Column([
-                    ft.IconButton(
-                        icon=ft.Icons.HISTORY,
-                        tooltip="Orders",
-                        on_click=lambda e: page.go("/orders")
-                    ),
+                    ft.IconButton(icon=ft.Icons.HISTORY, tooltip="Orders", on_click=lambda e: page.go("/orders")),
                     ft.Text("Orders", size=10, text_align=ft.TextAlign.CENTER)
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
                 
                 ft.Column([
-                    ft.IconButton(
-                        icon=ft.Icons.PERSON,
-                        tooltip="Profile",
-                        on_click=lambda e: page.go("/profile")
-                    ),
+                    ft.IconButton(icon=ft.Icons.PERSON, tooltip="Profile", on_click=lambda e: page.go("/profile")),
                     ft.Text("Profile", size=10, text_align=ft.TextAlign.CENTER)
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
             ], alignment=ft.MainAxisAlignment.SPACE_AROUND),
             bgcolor="white",
-            padding=ft.padding.symmetric(vertical=8, horizontal=0),
+            padding=ft.padding.symmetric(vertical=6),
             border=ft.border.only(top=ft.BorderSide(1, "grey300")),
-            margin=0
+            margin=0,
+            height=60
         )
         
         recent_container.content = ft.Column([
-            ft.Text("Recent Searches", size=16, weight="bold") if len(recent_searches) > 0 else ft.Container(),
+            ft.Text("Recent Searches", size=14, weight="bold") if len(recent_searches) > 0 else ft.Container(),
             recent_column
-        ], spacing=10)
-        recent_container.padding = ft.padding.only(left=10, right=10, bottom=10)
+        ], spacing=8)
+        recent_container.padding = 10
         recent_container.visible = len(recent_searches) > 0
         
         page.clean()
         page.add(
-            ft.Column([
-                ft.Container(
-                    content=ft.Row([
-                        ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=lambda e: home_view(page)),
-                        search_field,
-                    ], spacing=10),
-                    padding=10
-                ),
-                recent_container,
-                ft.Container(
-                    content=search_results_column,
-                    expand=True,
-                    padding=10
-                ),
-                footer
-            ], expand=True, spacing=0)
+            ft.Container(
+                content=ft.Column([
+                    ft.Container(
+                        content=ft.Row([
+                            ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=lambda e: home_view(page)),
+                            search_field,
+                        ], spacing=8),
+                        padding=10,
+                        bgcolor="white"
+                    ),
+                    recent_container,
+                    ft.Container(
+                        content=search_results_column,
+                        expand=True,
+                        padding=10,
+                        bgcolor="grey100"
+                    ),
+                    footer
+                ], expand=True, spacing=0),
+                width=400,
+                height=700,
+                padding=0
+            )
         )
         page.update()
 
+    # Categories - DEFINE BEFORE USE
+    categories = ["All", "Noodles", "K-Food", "Korean Bowls", "Combo", "Toppings", "Drinks"]
+    category_row = ft.Row(
+        [
+            ft.ElevatedButton(
+                cat,
+                on_click=lambda e, c=cat: load_items(c),
+                style=ft.ButtonStyle(padding=8)
+            ) for cat in categories
+        ],
+        wrap=True,
+        spacing=6
+    )
+
+    # Footer
     footer = ft.Container(
         content=ft.Row([
             ft.Column([
-                ft.IconButton(
-                    icon=ft.Icons.RESTAURANT_MENU,
-                    tooltip="Food",
-                    icon_color="blue700"
-                ),
+                ft.IconButton(icon=ft.Icons.RESTAURANT_MENU, tooltip="Food", icon_color="blue700"),
                 ft.Text("Food", size=10, text_align=ft.TextAlign.CENTER, color="blue700")
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
             
             ft.Column([
-                ft.IconButton(
-                    icon=ft.Icons.SEARCH,
-                    tooltip="Search",
-                    on_click=lambda e: show_search_view()
-                ),
+                ft.IconButton(icon=ft.Icons.SEARCH, tooltip="Search", on_click=lambda e: show_search_view()),
                 ft.Text("Search", size=10, text_align=ft.TextAlign.CENTER)
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
             
             ft.Column([
-                ft.IconButton(
-                    icon=ft.Icons.HISTORY,
-                    tooltip="Orders",
-                    on_click=lambda e: page.go("/orders")
-                ),
+                ft.IconButton(icon=ft.Icons.HISTORY, tooltip="Orders", on_click=lambda e: page.go("/orders")),
                 ft.Text("Orders", size=10, text_align=ft.TextAlign.CENTER)
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
             
             ft.Column([
-                ft.IconButton(
-                    icon=ft.Icons.PERSON,
-                    tooltip="Profile",
-                    on_click=lambda e: page.go("/profile")
-                ),
+                ft.IconButton(icon=ft.Icons.PERSON, tooltip="Profile", on_click=lambda e: page.go("/profile")),
                 ft.Text("Profile", size=10, text_align=ft.TextAlign.CENTER)
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
         ], alignment=ft.MainAxisAlignment.SPACE_AROUND),
         bgcolor="white",
-        padding=ft.padding.symmetric(vertical=8, horizontal=0),
+        padding=ft.padding.symmetric(vertical=6),
         border=ft.border.only(top=ft.BorderSide(1, "grey300")),
-        margin=0
+        margin=0,
+        height=60
     )
 
+    # Cart button
     cart_button = ft.Stack([
         ft.IconButton(
             icon=ft.Icons.SHOPPING_CART,
@@ -622,51 +612,55 @@ def home_view(page: ft.Page):
         cart_badge_container
     ], width=50, height=50)
 
-    header = ft.Container(
-        content=ft.Row([
-            ft.TextField(
-                label="Search food items...",
-                width=250,
-                on_change=lambda e: search_items(e.control.value),
-                prefix_icon=ft.Icons.SEARCH
-            ),
-            cart_button
-        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-        padding=10
-    )
-
-    categories = ["All", "Noodles", "K-Food", "Korean Bowls", "Combo", "Toppings", "Drinks"]
-    category_row = ft.Row(
-        [
-            ft.ElevatedButton(
-                cat,
-                on_click=lambda e, c=cat: load_items(c),
-                style=ft.ButtonStyle(padding=10)
-            ) for cat in categories
-        ],
-        wrap=True,
-        spacing=10
-    )
-
+    # Main layout
     page.clean()
     page.add(
-        ft.Column([
-            header,
-            ft.Container(
-                content=ft.Column([
-                    ft.Text("Categories", size=18, weight="bold"),
-                    category_row
-                ]),
-                padding=10
-            ),
-            ft.Container(
-                content=ft.Column([items_column], scroll=ft.ScrollMode.AUTO),
-                expand=True
-            ),
-            footer
-        ], expand=True, spacing=0)
+        ft.Container(
+            content=ft.Column([
+                # Header
+                ft.Container(
+                    content=ft.Row([
+                        ft.TextField(
+                            label="Search...",
+                            width=260,
+                            on_change=lambda e: search_items(e.control.value),
+                            prefix_icon=ft.Icons.SEARCH,
+                            text_size=13,
+                            height=45
+                        ),
+                        cart_button
+                    ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                    padding=10,
+                    bgcolor="white"
+                ),
+                
+                # Categories
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text("Categories", size=14, weight="bold"),
+                        category_row
+                    ], spacing=8),
+                    padding=10,
+                    bgcolor="white"
+                ),
+                
+                # Items list (scrollable)
+                ft.Container(
+                    content=ft.Column([items_column], scroll=ft.ScrollMode.AUTO),
+                    expand=True,
+                    padding=10,
+                    bgcolor="grey100"
+                ),
+                
+                # Footer
+                footer
+            ], expand=True, spacing=0),
+            width=400,
+            height=700,
+            padding=0
+        )
     )
-    
+
     # Load items and update badge
     load_items()
     update_cart_badge()

@@ -896,32 +896,40 @@ def admin_view(page: ft.Page):
 
     page.clean()
     page.add(
-        ft.Column([
-            ft.Container(
-                content=ft.Row([
-                    ft.Text("🔧 Admin Panel", size=24, weight="bold"),
-                    ft.Row([
-                        ft.ElevatedButton(
-                            "📊 Analytics",
-                            icon=ft.Icons.ANALYTICS,
-                            on_click=goto_analytics,
-                            style=ft.ButtonStyle(
-                                bgcolor="purple700",
-                                color="white"
+        ft.Container(
+            content=ft.Column([
+                # Header - BLACK background
+                ft.Container(
+                    content=ft.Row([
+                        ft.Text("Admin Panel", size=18, weight="bold", color="white"),
+                        ft.Row([
+                            ft.IconButton(
+                                icon=ft.Icons.ANALYTICS,
+                                icon_color="white",
+                                tooltip="Analytics",
+                                on_click=lambda e: page.go("/analytics")
+                            ),
+                            ft.IconButton(
+                                icon=ft.Icons.LOGOUT,
+                                icon_color="white",
+                                tooltip="Logout",
+                                on_click=logout_user
                             )
-                        ),
-                        ft.ElevatedButton(
-                            "Logout",
-                            icon=ft.Icons.LOGOUT,
-                            on_click=logout_user
-                        )
-                    ], spacing=10)
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                padding=10,
-                bgcolor="blue50",
-                border_radius=10
-            ),
-            tabs
-        ], expand=True)
+                        ], spacing=5)
+                    ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                    padding=10,
+                    bgcolor="black",
+                ),
+                
+                # Tabs (scrollable content)
+                ft.Container(
+                    content=tabs,
+                    expand=True
+                )
+            ], expand=True, spacing=0),
+            width=400,
+            height=700,
+            padding=0
+        )
     )
     page.update()

@@ -31,51 +31,50 @@ def analytics_view(page: ft.Page):
     summary_cards = ft.Row([
         ft.Container(
             content=ft.Column([
-                ft.Icon(ft.Icons.SHOPPING_BAG, size=40, color="blue700"),
-                ft.Text(str(summary["total_orders"]), size=32, weight="bold"),
-                ft.Text("Total Orders", size=14, color="grey700"),
-                ft.Text(f"Today: {summary['today_orders']}", size=12, color="green")
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=5),
-            padding=20,
+                ft.Text(str(summary["total_orders"]), size=28, weight="bold"),
+                ft.Text("Total Orders", size=12, color="grey700"),
+                ft.Text(f"Today: {summary['today_orders']}", size=10, color="green")
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=3),
+            padding=12,
             bgcolor="blue50",
-            border_radius=10,
+            border_radius=8,
             expand=1
         ),
         ft.Container(
             content=ft.Column([
-                ft.Icon(ft.Icons.ATTACH_MONEY, size=40, color="green700"),
-                ft.Text(f"₱{summary['total_revenue']:,.0f}", size=28, weight="bold"),
-                ft.Text("Total Revenue", size=14, color="grey700"),
-                ft.Text(f"Today: ₱{summary['today_revenue']:,.0f}", size=12, color="green")
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=5),
-            padding=20,
+                ft.Text(f"₱{summary['total_revenue']:,.0f}", size=24, weight="bold"),
+                ft.Text("Revenue", size=12, color="grey700"),
+                ft.Text(f"₱{summary['today_revenue']:,.0f}", size=10, color="green")
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=3),
+            padding=12,
             bgcolor="green50",
-            border_radius=10,
+            border_radius=8,
             expand=1
         ),
+    ], spacing=8)
+    
+    summary_cards_row2 = ft.Row([
         ft.Container(
             content=ft.Column([
-                ft.Icon(ft.Icons.PEOPLE, size=40, color="orange700"),
-                ft.Text(str(summary["total_customers"]), size=32, weight="bold"),
-                ft.Text("Customers", size=14, color="grey700"),
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=5),
-            padding=20,
+                ft.Text(str(summary["total_customers"]), size=28, weight="bold"),
+                ft.Text("Customers", size=12, color="grey700"),
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=3),
+            padding=12,
             bgcolor="orange50",
-            border_radius=10,
+            border_radius=8,
             expand=1
         ),
         ft.Container(
             content=ft.Column([
-                ft.Icon(ft.Icons.RESTAURANT_MENU, size=40, color="purple700"),
-                ft.Text(str(summary["total_items"]), size=32, weight="bold"),
-                ft.Text("Menu Items", size=14, color="grey700"),
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=5),
-            padding=20,
+                ft.Text(str(summary["total_items"]), size=28, weight="bold"),
+                ft.Text("Menu Items", size=12, color="grey700"),
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=3),
+            padding=12,
             bgcolor="purple50",
-            border_radius=10,
+            border_radius=8,
             expand=1
         ),
-    ], spacing=10)
+    ], spacing=8)
     
     # --- CHART 1: Sales Trends ---
     def create_sales_trend_chart(period="daily"):
@@ -85,9 +84,9 @@ def analytics_view(page: ft.Page):
         
         if not data["dates"]:
             return ft.Container(
-                content=ft.Text("No sales data available", size=16, color="grey"),
+                content=ft.Text("No sales data available", size=14, color="grey"),
                 alignment=ft.alignment.center,
-                padding=40
+                padding=30
             )
         
         fig = go.Figure()
@@ -96,19 +95,20 @@ def analytics_view(page: ft.Page):
             y=data["revenue"],
             mode='lines+markers',
             name='Revenue',
-            line=dict(color='#2196F3', width=3),
-            marker=dict(size=8),
+            line=dict(color='#2196F3', width=2),
+            marker=dict(size=6),
             fill='tozeroy',
             fillcolor='rgba(33, 150, 243, 0.1)'
         ))
         
         fig.update_layout(
-            title=f"Sales Trend ({period.capitalize()})",
+            title=dict(text=f"Sales Trend ({period.capitalize()})", font=dict(size=14)),
             xaxis_title="Date",
             yaxis_title="Revenue (₱)",
             hovermode='x unified',
-            height=350,
-            margin=dict(l=40, r=40, t=60, b=40)
+            height=250,
+            margin=dict(l=40, r=20, t=40, b=40),
+            font=dict(size=10)
         )
         
         return PlotlyChart(fig, expand=True)
@@ -127,7 +127,7 @@ def analytics_view(page: ft.Page):
             ft.Radio(value="daily", label="Daily"),
             ft.Radio(value="weekly", label="Weekly"),
             ft.Radio(value="monthly", label="Monthly"),
-        ], spacing=20),
+        ], spacing=10),
         value="daily",
         on_change=update_sales_chart
     )
@@ -137,16 +137,16 @@ def analytics_view(page: ft.Page):
     # --- CHART 2: Best Selling Items ---
     def create_best_sellers_chart():
         """Create horizontal bar chart of best sellers"""
-        items = get_best_selling_items(db, limit=10)
+        items = get_best_selling_items(db, limit=8)  # Reduced to 8 for mobile
         
         if not items:
             return ft.Container(
-                content=ft.Text("No sales data available", size=16, color="grey"),
+                content=ft.Text("No sales data", size=14, color="grey"),
                 alignment=ft.alignment.center,
-                padding=40
+                padding=30
             )
         
-        names = [item["name"] for item in items]
+        names = [item["name"][:20] for item in items]  # Truncate long names
         quantities = [item["quantity"] for item in items]
         
         fig = go.Figure(go.Bar(
@@ -163,11 +163,12 @@ def analytics_view(page: ft.Page):
         ))
         
         fig.update_layout(
-            title="Top 10 Best-Selling Items",
-            xaxis_title="Quantity Sold",
+            title=dict(text="Top Sellers", font=dict(size=14)),
+            xaxis_title="Qty Sold",
             yaxis_title="",
-            height=400,
-            margin=dict(l=150, r=40, t=60, b=40)
+            height=280,
+            margin=dict(l=120, r=20, t=40, b=40),
+            font=dict(size=10)
         )
         
         return PlotlyChart(fig, expand=True)
@@ -179,9 +180,9 @@ def analytics_view(page: ft.Page):
         
         if not data["categories"]:
             return ft.Container(
-                content=ft.Text("No category data available", size=16, color="grey"),
+                content=ft.Text("No category data", size=14, color="grey"),
                 alignment=ft.alignment.center,
-                padding=40
+                padding=30
             )
         
         fig = go.Figure(go.Pie(
@@ -190,13 +191,15 @@ def analytics_view(page: ft.Page):
             hole=0.4,
             marker=dict(colors=px.colors.qualitative.Set3),
             textinfo='label+percent',
-            textposition='auto'
+            textposition='auto',
+            textfont=dict(size=10)
         ))
         
         fig.update_layout(
-            title="Revenue by Category",
-            height=350,
-            margin=dict(l=40, r=40, t=60, b=40)
+            title=dict(text="Revenue by Category", font=dict(size=14)),
+            height=280,
+            margin=dict(l=20, r=20, t=40, b=20),
+            font=dict(size=10)
         )
         
         return PlotlyChart(fig, expand=True)
@@ -208,13 +211,13 @@ def analytics_view(page: ft.Page):
         
         if not data["order_counts"]:
             return ft.Container(
-                content=ft.Text("No customer data available", size=16, color="grey"),
+                content=ft.Text("No customer data", size=14, color="grey"),
                 alignment=ft.alignment.center,
-                padding=40
+                padding=30
             )
         
         fig = go.Figure(go.Bar(
-            x=[f"{count} order{'s' if count != 1 else ''}" for count in data["order_counts"]],
+            x=[f"{count}" for count in data["order_counts"]],
             y=data["customer_counts"],
             marker=dict(color='#FF9800'),
             text=data["customer_counts"],
@@ -222,11 +225,12 @@ def analytics_view(page: ft.Page):
         ))
         
         fig.update_layout(
-            title="Customer Order Frequency",
-            xaxis_title="Number of Orders",
-            yaxis_title="Number of Customers",
-            height=300,
-            margin=dict(l=40, r=40, t=60, b=40)
+            title=dict(text="Order Frequency", font=dict(size=14)),
+            xaxis_title="Orders",
+            yaxis_title="Customers",
+            height=220,
+            margin=dict(l=40, r=20, t=40, b=40),
+            font=dict(size=10)
         )
         
         return PlotlyChart(fig, expand=True)
@@ -238,9 +242,9 @@ def analytics_view(page: ft.Page):
         
         if not data["hours"]:
             return ft.Container(
-                content=ft.Text("No hourly data available", size=16, color="grey"),
+                content=ft.Text("No hourly data", size=14, color="grey"),
                 alignment=ft.alignment.center,
-                padding=40
+                padding=30
             )
         
         fig = go.Figure(go.Bar(
@@ -249,19 +253,19 @@ def analytics_view(page: ft.Page):
             marker=dict(
                 color=data["orders"],
                 colorscale='RdYlGn',
-                showscale=True,
-                colorbar=dict(title="Orders")
+                showscale=False
             ),
             text=data["orders"],
             textposition='auto',
         ))
         
         fig.update_layout(
-            title="Sales Pattern by Hour",
-            xaxis_title="Hour of Day",
-            yaxis_title="Number of Orders",
-            height=300,
-            margin=dict(l=40, r=40, t=60, b=40)
+            title=dict(text="Hourly Sales", font=dict(size=14)),
+            xaxis_title="Hour",
+            yaxis_title="Orders",
+            height=220,
+            margin=dict(l=40, r=20, t=40, b=40),
+            font=dict(size=10)
         )
         
         return PlotlyChart(fig, expand=True)
@@ -274,141 +278,152 @@ def analytics_view(page: ft.Page):
         if not alerts:
             return ft.Container(
                 content=ft.Column([
-                    ft.Icon(ft.Icons.CHECK_CIRCLE, size=60, color="green"),
-                    ft.Text("All inventory levels are healthy", size=16, color="grey")
+                    ft.Text("All inventory OK", size=14, color="green", weight="bold")
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10),
                 alignment=ft.alignment.center,
-                padding=40
+                padding=20
             )
         
-        alert_list = ft.Column(spacing=8)
+        alert_list = ft.Column(spacing=6)
         
-        for alert in alerts:
+        for alert in alerts[:5]:  # Limit to 5 for mobile
             status_color = "red" if alert["status"] == "High Demand" else "orange"
             
             alert_list.controls.append(
                 ft.Container(
-                    content=ft.Row([
-                        ft.Icon(
-                            ft.Icons.WARNING_AMBER if alert["status"] == "High Demand" else ft.Icons.INFO,
-                            color=status_color,
-                            size=24
-                        ),
-                        ft.Column([
-                            ft.Text(alert["name"], weight="bold", size=14),
-                            ft.Text(f"Sold: {alert['quantity_sold']} units | Revenue: ₱{alert['revenue']:,.0f}", size=12, color="grey700"),
-                        ], spacing=2, expand=True),
-                        ft.Container(
-                            content=ft.Text(alert["status"], size=12, color="white", weight="bold"),
-                            bgcolor=status_color,
-                            padding=ft.padding.symmetric(horizontal=12, vertical=6),
-                            border_radius=5
-                        )
-                    ], alignment=ft.MainAxisAlignment.START),
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Text(alert["name"][:25], weight="bold", size=12, expand=True),
+                            ft.Container(
+                                content=ft.Text(alert["status"], size=10, color="white", weight="bold"),
+                                bgcolor=status_color,
+                                padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                                border_radius=4
+                            )
+                        ]),
+                        ft.Text(f"Sold: {alert['quantity_sold']} | ₱{alert['revenue']:,.0f}", size=10, color="grey700"),
+                    ], spacing=4),
                     border=ft.border.all(1, "grey300"),
-                    border_radius=8,
-                    padding=12,
+                    border_radius=6,
+                    padding=10,
                     bgcolor="white"
                 )
             )
         
         return ft.Container(
             content=alert_list,
-            padding=10
+            padding=5
         )
     
     # --- LAYOUT ---
     page.clean()
     page.add(
-        ft.Column([
-            # Header
-            ft.Container(
-                content=ft.Row([
-                    ft.IconButton(
-                        icon=ft.Icons.ARROW_BACK,
-                        tooltip="Back to Admin Panel",
-                        on_click=lambda e: page.go("/admin")
-                    ),
-                    ft.Text("📊 Analytics Dashboard", size=24, weight="bold"),
-                ]),
-                padding=10
-            ),
-            
-            # Summary Cards
-            ft.Container(content=summary_cards, padding=ft.padding.symmetric(horizontal=10)),
-            
-            # Charts Grid
-            ft.Container(
-                content=ft.Column([
-                    # Row 1: Sales Trend (full width)
-                    ft.Container(
-                        content=ft.Column([
-                            period_selector,
-                            sales_chart_container
-                        ], spacing=10),
-                        border=ft.border.all(1, "grey300"),
-                        border_radius=10,
-                        padding=15,
-                        bgcolor="white"
-                    ),
-                    
-                    # Row 2: Best Sellers + Category Revenue
-                    ft.Row([
+        ft.Container(
+            content=ft.Column([
+                # Header
+                ft.Container(
+                    content=ft.Row([
+                        ft.IconButton(
+                            icon=ft.Icons.ARROW_BACK,
+                            tooltip="Back to Admin",
+                            on_click=lambda e: page.go("/admin")
+                        ),
+                        ft.Text("Analytics Dashboard", size=18, weight="bold"),
+                    ]),
+                    padding=10,
+                    bgcolor="black",
+                ),
+                
+                # Content (scrollable)
+                ft.Container(
+                    content=ft.Column([
+                        # Summary Cards
+                        ft.Container(
+                            content=ft.Column([
+                                summary_cards,
+                                summary_cards_row2
+                            ], spacing=8),
+                            padding=ft.padding.symmetric(horizontal=10, vertical=10)
+                        ),
+                        
+                        # Sales Trend Chart
+                        ft.Container(
+                            content=ft.Column([
+                                period_selector,
+                                sales_chart_container
+                            ], spacing=8),
+                            border=ft.border.all(1, "grey300"),
+                            border_radius=8,
+                            padding=12,
+                            bgcolor="white",
+                            margin=ft.margin.symmetric(horizontal=10)
+                        ),
+                        
+                        # Best Sellers Chart
                         ft.Container(
                             content=create_best_sellers_chart(),
                             border=ft.border.all(1, "grey300"),
-                            border_radius=10,
-                            padding=15,
+                            border_radius=8,
+                            padding=12,
                             bgcolor="white",
-                            expand=1
+                            margin=ft.margin.symmetric(horizontal=10, vertical=8)
                         ),
+                        
+                        # Category Revenue Chart
                         ft.Container(
                             content=create_category_revenue_chart(),
                             border=ft.border.all(1, "grey300"),
-                            border_radius=10,
-                            padding=15,
+                            border_radius=8,
+                            padding=12,
                             bgcolor="white",
-                            expand=1
+                            margin=ft.margin.symmetric(horizontal=10, vertical=8)
                         ),
-                    ], spacing=10),
-                    
-                    # Row 3: Order Frequency + Hourly Pattern
-                    ft.Row([
+                        
+                        # Order Frequency Chart
                         ft.Container(
                             content=create_order_frequency_chart(),
                             border=ft.border.all(1, "grey300"),
-                            border_radius=10,
-                            padding=15,
+                            border_radius=8,
+                            padding=12,
                             bgcolor="white",
-                            expand=1
+                            margin=ft.margin.symmetric(horizontal=10, vertical=8)
                         ),
+                        
+                        # Hourly Pattern Chart
                         ft.Container(
                             content=create_hourly_pattern_chart(),
                             border=ft.border.all(1, "grey300"),
-                            border_radius=10,
-                            padding=15,
+                            border_radius=8,
+                            padding=12,
                             bgcolor="white",
-                            expand=1
+                            margin=ft.margin.symmetric(horizontal=10, vertical=8)
                         ),
-                    ], spacing=10),
-                    
-                    # Row 4: Inventory Alerts
-                    ft.Container(
-                        content=ft.Column([
-                            ft.Text("🚨 Inventory Alerts", size=18, weight="bold"),
-                            ft.Divider(height=1),
-                            create_inventory_alerts()
-                        ], spacing=10),
-                        border=ft.border.all(1, "grey300"),
-                        border_radius=10,
-                        padding=15,
-                        bgcolor="white"
-                    ),
-                ], spacing=10, scroll=ft.ScrollMode.AUTO),
-                padding=10,
-                expand=True
-            ),
-        ], expand=True, spacing=0)
+                        
+                        # Inventory Alerts
+                        ft.Container(
+                            content=ft.Column([
+                                ft.Text("Inventory Alerts", size=16, weight="bold"),
+                                ft.Divider(height=1),
+                                create_inventory_alerts()
+                            ], spacing=8),
+                            border=ft.border.all(1, "grey300"),
+                            border_radius=8,
+                            padding=12,
+                            bgcolor="white",
+                            margin=ft.margin.symmetric(horizontal=10, vertical=8)
+                        ),
+                        
+                        ft.Container(height=20)  # Bottom padding
+                        
+                    ], spacing=0, scroll=ft.ScrollMode.AUTO),
+                    expand=True,
+                    padding=0
+                )
+            ], expand=True, spacing=0),
+            width=400,
+            height=700,
+            padding=0
+        )
     )
     
     page.update()
