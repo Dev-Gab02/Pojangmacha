@@ -7,27 +7,128 @@ from core.google_auth import get_google_user_info
 from core.email_service import generate_verification_code, send_verification_email, store_verification_code, verify_code, resend_verification_code
 import threading
 
+# ===== BRAND COLORS (SAME AS LOGIN) =====
+ORANGE = "#FF6B35"
+LIGHT_GRAY = "#D9D9D9"
+DARK_GRAY = "#cdbcbc"
+WHITE = "#FFFFFF"
+BUTTON_COLOR = "#FEB23F"
+
 def signup_view(page: ft.Page):
     page.title = "Sign Up - Pojangmacha"
     db = SessionLocal()
+    MOBILE_WIDTH = 350
 
-    # Step 1: Registration form
-    full_name = ft.TextField(label="Full Name", width=350)
-    email = ft.TextField(label="Email", width=350)
-    phone = ft.TextField(label="Phone Number", width=350)
-    password = ft.TextField(label="Password", password=True, can_reveal_password=True, width=350)
-    confirm_password = ft.TextField(label="Confirm Password", password=True, can_reveal_password=True, width=350)
-    message = ft.Text(value="", color="red")
+    # ===== INPUT FIELDS (MATCHING LOGIN DESIGN) =====
+    full_name = ft.TextField(
+        label="Full Name",
+        label_style=ft.TextStyle(color="#000000"),
+        hint_text="Enter your Full Name",
+        hint_style=ft.TextStyle(color="#000000"),
+        color="#000000",
+        width=MOBILE_WIDTH,
+        border_radius=12,
+        filled=True,
+        bgcolor=LIGHT_GRAY,
+        border_color="transparent",
+        focused_border_color=ORANGE,
+        prefix_icon=ft.Icons.PERSON_OUTLINE,
+        text_size=14,
+        height=55
+    )
+    
+    email = ft.TextField(
+        label="Email Address",
+        label_style=ft.TextStyle(color="#000000"),
+        hint_text="Enter your Email",
+        hint_style=ft.TextStyle(color="#000000"),
+        color="#000000",
+        width=MOBILE_WIDTH,
+        border_radius=12,
+        filled=True,
+        bgcolor=LIGHT_GRAY,
+        border_color="transparent",
+        focused_border_color=ORANGE,
+        prefix_icon=ft.Icons.EMAIL_OUTLINED,
+        text_size=14,
+        height=55
+    )
+    
+    phone = ft.TextField(
+        label="Phone Number",
+        label_style=ft.TextStyle(color="#000000"),
+        hint_text="Enter your Phone Number",
+        hint_style=ft.TextStyle(color="#000000"),
+        color="#000000",
+        width=MOBILE_WIDTH,
+        border_radius=12,
+        filled=True,
+        bgcolor=LIGHT_GRAY,
+        border_color="transparent",
+        focused_border_color=ORANGE,
+        prefix_icon=ft.Icons.PHONE_OUTLINED,
+        text_size=14,
+        height=55
+    )
+    
+    password = ft.TextField(
+        label="Password",
+        label_style=ft.TextStyle(color="#000000"),
+        hint_text="Create a Password",
+        hint_style=ft.TextStyle(color="#000000"),
+        color="#000000",
+        password=True,
+        can_reveal_password=True,
+        width=MOBILE_WIDTH,
+        border_radius=12,
+        filled=True,
+        bgcolor=LIGHT_GRAY,
+        border_color="transparent",
+        focused_border_color=ORANGE,
+        prefix_icon=ft.Icons.LOCK_OUTLINE,
+        text_size=14,
+        height=55
+    )
+    
+    confirm_password = ft.TextField(
+        label="Confirm Password",
+        label_style=ft.TextStyle(color="#000000"),
+        hint_text="Confirm your Password",
+        hint_style=ft.TextStyle(color="#000000"),
+        color="#000000",
+        password=True,
+        can_reveal_password=True,
+        width=MOBILE_WIDTH,
+        border_radius=12,
+        filled=True,
+        bgcolor=LIGHT_GRAY,
+        border_color="transparent",
+        focused_border_color=ORANGE,
+        prefix_icon=ft.Icons.LOCK_OUTLINE,
+        text_size=14,
+        height=55
+    )
+
+    message = ft.Text(value="", color="red", size=12, text_align=ft.TextAlign.CENTER)
 
     # Step 2: Email verification
     verification_code_input = ft.TextField(
         label="Enter 6-digit code",
-        width=350,
+        label_style=ft.TextStyle(color="#000000"),
+        color="#000000",
+        width=MOBILE_WIDTH,
         max_length=6,
         text_align=ft.TextAlign.CENTER,
-        keyboard_type=ft.KeyboardType.NUMBER
+        keyboard_type=ft.KeyboardType.NUMBER,
+        border_radius=12,
+        filled=True,
+        bgcolor=LIGHT_GRAY,
+        border_color="transparent",
+        focused_border_color=ORANGE,
+        text_size=18,
+        height=55
     )
-    verification_message = ft.Text(value="", color="red")
+    verification_message = ft.Text(value="", color="red", size=12)
     
     # Store user data temporarily
     temp_user_data = {}
@@ -40,19 +141,25 @@ def signup_view(page: ft.Page):
     def send_verification(e):
         """Send verification code to email"""
         if not all([full_name.value, email.value, phone.value, password.value, confirm_password.value]):
-            message.value = "All fields are required!"
+            message.value = "❌ All fields are required!"
             message.color = "red"
             page.update()
             return
         
         if not is_valid_email(email.value):
-            message.value = "Please enter a valid email address!"
+            message.value = "❌ Please enter a valid email address!"
             message.color = "red"
             page.update()
             return
         
         if password.value != confirm_password.value:
-            message.value = "Passwords do not match!"
+            message.value = "❌ Passwords do not match!"
+            message.color = "red"
+            page.update()
+            return
+        
+        if len(password.value) < 6:
+            message.value = "❌ Password must be at least 6 characters!"
             message.color = "red"
             page.update()
             return
@@ -61,7 +168,7 @@ def signup_view(page: ft.Page):
         from models.user import User
         existing_user = db.query(User).filter(User.email == email.value).first()
         if existing_user:
-            message.value = "Email already exists."
+            message.value = "❌ Email already exists."
             message.color = "red"
             page.update()
             return
@@ -85,13 +192,7 @@ def signup_view(page: ft.Page):
             
             if success:
                 store_verification_code(email.value, code)
-                
-                # Show verification step
-                def show_verification_ui():
-                    message.value = ""
-                    show_verification_step()
-                page.update()
-                show_verification_ui()
+                show_verification_step()
             else:
                 message.value = "❌ Failed to send verification email. Please check your email and try again."
                 message.color = "red"
@@ -106,15 +207,29 @@ def signup_view(page: ft.Page):
         verification_message.value = f"✅ Verification code sent to {temp_user_data['email']}"
         verification_message.color = "green"
         
-        verify_btn = ft.ElevatedButton(
-            "Verify & Create Account",
-            on_click=verify_and_create_account,
-            width=300
+        brand_logo_verify = ft.Image(
+            src="assets/Brand.png",
+            width=300,
+            height=50,
+            fit=ft.ImageFit.CONTAIN
         )
         
-        resend_btn = ft.TextButton(
-            "Resend Code",
-            on_click=resend_code
+        verify_btn = ft.Container(
+            content=ft.Text("Verify & Create Account", size=16, weight="bold", color=WHITE),
+            width=MOBILE_WIDTH,
+            height=50,
+            bgcolor=BUTTON_COLOR,
+            border_radius=25,
+            alignment=ft.alignment.center,
+            on_click=verify_and_create_account,
+            ink=True,
+            animate=ft.Animation(200, "easeOut")
+        )
+        
+        resend_btn = ft.Container(
+            content=ft.Text("Resend Code", size=12, color=ORANGE, weight="bold"),
+            on_click=resend_code,
+            ink=True
         )
         
         back_btn = ft.TextButton(
@@ -124,23 +239,38 @@ def signup_view(page: ft.Page):
 
         page.clean()
         page.add(
-            ft.Column([
-                ft.Text("Verify Your Email", size=24, weight="bold"),
-                ft.Text("We've sent a 6-digit code to your email", size=14, color="grey"),
-                verification_code_input,
-                verify_btn,
-                resend_btn,
-                verification_message,
-                back_btn
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            alignment=ft.MainAxisAlignment.CENTER)
+            ft.Container(
+                content=ft.Column([
+                    ft.Container(height=30),
+                    brand_logo_verify,
+                    ft.Container(height=15),
+                    ft.Text("📧 Verify Your Email", size=22, weight="bold", color="#000000"),
+                    ft.Text("Enter the code sent to your email", size=12, color=DARK_GRAY),
+                    ft.Container(height=15),
+                    verification_code_input,
+                    ft.Container(height=15),
+                    verify_btn,
+                    ft.Container(height=8),
+                    resend_btn,
+                    ft.Container(height=8),
+                    verification_message,
+                    ft.Container(height=8),
+                    back_btn
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                scroll=ft.ScrollMode.AUTO),
+                width=400,
+                height=700,
+                padding=ft.padding.symmetric(horizontal=25),
+                bgcolor=WHITE
+            )
         )
+        page.update()
 
     def verify_and_create_account(e):
         """Verify code and create user account"""
         if not verification_code_input.value or len(verification_code_input.value) != 6:
-            verification_message.value = "Please enter the 6-digit code"
+            verification_message.value = "❌ Please enter the 6-digit code"
             verification_message.color = "red"
             page.update()
             return
@@ -158,9 +288,9 @@ def signup_view(page: ft.Page):
             if new_user:
                 page.snack_bar = ft.SnackBar(
                     ft.Text("✅ Account created successfully! Please log in."),
-                    open=True,
                     bgcolor=ft.Colors.GREEN
                 )
+                page.snack_bar.open = True
                 page.update()
                 page.go("/login")
             else:
@@ -196,27 +326,42 @@ def signup_view(page: ft.Page):
         page.add(
             ft.Container(
                 content=ft.Column([
-                    ft.Container(height=40),
-                    ft.Text("Create Your Account", size=24, weight="bold"),
-                    ft.Container(height=10),
+                    ft.Container(height=8),
+                    welcome_text,
+                    ft.Container(height=8),
+                    brand_logo,
+                    subtitle_text,
+                    ft.Container(height=20),
                     full_name,
+                    ft.Container(height=8),
                     email,
+                    ft.Container(height=8),
                     phone,
+                    ft.Container(height=8),
                     password,
+                    ft.Container(height=8),
                     confirm_password,
+                    ft.Container(height=8),
                     signup_btn,
-                    divider_row,
-                    google_btn,
+                    ft.Container(height=2),
                     message,
-                    ft.TextButton("Already have an account? Sign In", on_click=lambda e: page.go("/login"))
+                    ft.Container(height=10),
+                    divider_row,
+                    ft.Container(height=15),
+                    google_btn,
+                    ft.Container(height=8),
+                    signin_row
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                scroll=ft.ScrollMode.AUTO),
+                scroll=ft.ScrollMode.AUTO,
+                spacing=0),
                 width=400,
                 height=700,
-                padding=ft.padding.symmetric(horizontal=25)
+                padding=ft.padding.symmetric(horizontal=25),
+                bgcolor=WHITE
             )
         )
+        page.update()
 
     def handle_google_signup(e):
         """Handle Google sign-up with real OAuth"""
@@ -255,8 +400,11 @@ def signup_view(page: ft.Page):
                 except Exception as ex:
                     print("start_session error:", ex)
                 
-                message.value = f"✅ Welcome, {user.full_name}!"
-                message.color = "green"
+                page.snack_bar = ft.SnackBar(
+                    ft.Text(f"✅ Welcome, {user.full_name}!"),
+                    bgcolor=ft.Colors.GREEN
+                )
+                page.snack_bar.open = True
                 page.update()
                 page.go("/home")
                 
@@ -270,30 +418,78 @@ def signup_view(page: ft.Page):
         thread = threading.Thread(target=google_auth_thread, daemon=True)
         thread.start()
 
-    signup_btn = ft.ElevatedButton("Send Verification Code", on_click=send_verification, width=350)
+    # ===== UI COMPONENTS (MATCHING LOGIN DESIGN) =====
     
-    google_btn = ft.OutlinedButton(
+    # Brand Logo (300×50 - same as login)
+    brand_logo = ft.Image(
+        src="assets/Brand.png",
+        width=300,
+        height=50,
+        fit=ft.ImageFit.CONTAIN
+    )
+
+    # Welcome Text
+    welcome_text = ft.Text(
+        "Welcome to",
+        size=22,
+        weight="bold",
+        color="#000000"
+    )
+    
+    subtitle_text = ft.Text(
+        "Create your Account",
+        size=12,
+        color=DARK_GRAY
+    )
+
+    # Sign Up Button
+    signup_btn = ft.Container(
+        content=ft.Text("Create Account", size=16, weight="bold", color=WHITE),
+        width=MOBILE_WIDTH,
+        height=50,
+        bgcolor=BUTTON_COLOR,
+        border_radius=12,
+        alignment=ft.alignment.center,
+        on_click=send_verification,
+        ink=True,
+        animate=ft.Animation(200, "easeOut")
+    )
+
+    # OR Divider
+    divider_row = ft.Row([
+        ft.Container(expand=True, height=1, bgcolor="#E0E0E0"),
+        ft.Text("OR", size=12, color=DARK_GRAY, weight="bold"),
+        ft.Container(expand=True, height=1, bgcolor="#E0E0E0"),
+    ], spacing=10, width=MOBILE_WIDTH)
+
+    # Google Button
+    google_btn = ft.Container(
         content=ft.Row([
             ft.Image(
                 src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg",
-                width=20,
-                height=20
+                width=24,
+                height=24
             ),
-            ft.Text("Sign up with Google", size=14)
+            ft.Text("Continue with Google", size=14, color="#000000", weight="w500")
         ], spacing=10, alignment=ft.MainAxisAlignment.CENTER),
-        width=350,
-        height=45,
+        width=MOBILE_WIDTH,
+        height=50,
+        bgcolor=LIGHT_GRAY,
+        border=ft.border.all(1, "#E0E0E0"),
+        border_radius=12,
         on_click=handle_google_signup,
-        style=ft.ButtonStyle(
-            side=ft.BorderSide(1, "grey400"),
-            shape=ft.RoundedRectangleBorder(radius=5)
-        )
+        ink=True,
+        animate=ft.Animation(200, "easeOut")
     )
 
-    divider_row = ft.Row([
-        ft.Container(expand=True, height=1, bgcolor="grey400"),
-        ft.Text("OR", size=12, color="grey"),
-        ft.Container(expand=True, height=1, bgcolor="grey400"),
-    ], spacing=10, width=350)
+    # Sign In Link
+    signin_row = ft.Row([
+        ft.Text("Already have an account?", size=13, color=DARK_GRAY),
+        ft.Container(
+            content=ft.Text("Sign In", size=13, color=ORANGE, weight="bold"),
+            on_click=lambda e: page.go("/login"),
+            ink=True
+        )
+    ], spacing=5, alignment=ft.MainAxisAlignment.CENTER)
 
     show_signup_form()
