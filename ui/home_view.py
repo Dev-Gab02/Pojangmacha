@@ -13,7 +13,8 @@ import time
 from ui.checkout_view import checkout_view
 from ui.profile_view import profile_view_widget
 from ui.order_history_view import order_history_widget
-from ui.cart_view import cart_view  # <-- Import your new cart view
+from ui.cart_view import cart_view
+from ui.food_view import food_view  # <-- Import your new food view
 
 def home_view(page: ft.Page):
     db = SessionLocal()
@@ -32,7 +33,6 @@ def home_view(page: ft.Page):
     # State
     nav_state = {"tab": "food"}  # "food", "cart", "orders", "profile"
     show_checkout = {"value": False}
-    items_column = ft.Column(spacing=10)
     cart_count_text = ft.Text("", color="white", size=10, weight="bold")
     cart_badge_container = ft.Container(
         content=cart_count_text,
@@ -45,27 +45,6 @@ def home_view(page: ft.Page):
     )
     content_container = ft.Container(expand=True)
 
-    # --- SKELETON LOADER ---
-    def create_skeleton_card():
-        return ft.Card(
-            content=ft.Container(
-                padding=10,
-                content=ft.Row([
-                    ft.Container(width=80, height=80, bgcolor="grey300", border_radius=8),
-                    ft.Column([
-                        ft.Container(width=150, height=16, bgcolor="grey300", border_radius=4),
-                        ft.Container(width=120, height=12, bgcolor="grey300", border_radius=4),
-                        ft.Container(width=80, height=14, bgcolor="grey300", border_radius=4),
-                    ], spacing=6, expand=True)
-                ], spacing=8)
-            )
-        )
-    def show_skeleton_loader(container):
-        container.controls.clear()
-        for _ in range(5):
-            container.controls.append(create_skeleton_card())
-        page.update()
-
     # --- CART BADGE ---
     def update_cart_badge():
         total_items = get_cart_count(db, user_id)
@@ -76,144 +55,6 @@ def home_view(page: ft.Page):
             cart_count_text.value = ""
             cart_badge_container.visible = False
         page.update()
-
-    # --- LOAD ITEMS ---
-    def load_items(category="All"):
-        show_skeleton_loader(items_column)
-        time.sleep(0.1)
-        items_column.controls.clear()
-        query = db.query(FoodItem)
-        if category != "All":
-            query = query.filter(FoodItem.category == category)
-        items = query.all()
-        for item in items:
-            item_card = ft.Card(
-                content=ft.Container(
-                    padding=10,
-                    content=ft.Row([
-                        ft.Image(
-                            src=item.image,
-                            width=80,
-                            height=80,
-                            fit=ft.ImageFit.COVER,
-                            border_radius=8
-                        ) if item.image and os.path.exists(item.image) else ft.Container(
-                            width=80,
-                            height=80,
-                            bgcolor="grey300",
-                            border_radius=8
-                        ),
-                        ft.Column([
-                            ft.Text(item.name, weight="bold", size=14),
-                            ft.Text(item.description[:30] + "..." if len(item.description) > 30 else item.description, size=10, color="grey700"),
-                            ft.Text(f"₱{item.price:.2f}", color="green", size=14, weight="bold"),
-                            ft.ElevatedButton(
-                                "Add",
-                                icon=ft.Icons.ADD_SHOPPING_CART,
-                                on_click=lambda e, it=item: add_to_cart_directly(it),
-                                style=ft.ButtonStyle(bgcolor="blue700", color="white"),
-                                height=35
-                            )
-                        ], spacing=3, expand=True)
-                    ], spacing=8)
-                )
-            )
-            items_column.controls.append(item_card)
-        if not items_column.controls:
-            items_column.controls.append(
-                ft.Container(
-                    content=ft.Text("No items in this category yet.", size=14, color="grey", italic=True),
-                    padding=20,
-                    alignment=ft.alignment.center
-                )
-            )
-        page.update()
-
-    def add_to_cart_directly(item):
-        add_to_cart(db, user_id, item.id, quantity=1)
-        update_cart_badge()
-        page.snack_bar = ft.SnackBar(
-            content=ft.Row([
-                ft.Icon(ft.Icons.CHECK_CIRCLE, color="white"),
-                ft.Text(f"✅ {item.name} added to cart!", color="white", weight="bold")
-            ]),
-            bgcolor="green700",
-            duration=2000
-        )
-        page.snack_bar.open = True
-        page.update()
-
-    # --- SEARCH ---
-    def search_items(keyword):
-        show_skeleton_loader(items_column)
-        time.sleep(0.1)
-        items_column.controls.clear()
-        if not keyword.strip():
-            load_items()
-            return
-        results = db.query(FoodItem).filter(FoodItem.name.ilike(f"%{keyword}%")).all()
-        if not results:
-            items_column.controls.append(
-                ft.Container(
-                    content=ft.Text("No items found", size=14, color="grey"),
-                    padding=20,
-                    alignment=ft.alignment.center
-                )
-            )
-        else:
-            for item in results:
-                item_card = ft.Card(
-                    content=ft.Container(
-                        padding=10,
-                        content=ft.Row([
-                            ft.Image(
-                                src=item.image,
-                                width=80,
-                                height=80,
-                                fit=ft.ImageFit.COVER,
-                                border_radius=8
-                            ) if item.image and os.path.exists(item.image) else ft.Container(
-                                width=80,
-                                height=80,
-                                bgcolor="grey300",
-                                border_radius=8
-                            ),
-                            ft.Column([
-                                ft.Text(item.name, weight="bold", size=14),
-                                ft.Text(item.description[:30] + "...", size=10, color="grey700"),
-                                ft.Text(f"₱{item.price:.2f}", color="green", size=14, weight="bold"),
-                                ft.ElevatedButton(
-                                    "Add",
-                                    icon=ft.Icons.ADD_SHOPPING_CART,
-                                    on_click=lambda e, it=item: add_to_cart_directly(it),
-                                    style=ft.ButtonStyle(bgcolor="blue700", color="white"),
-                                    height=35
-                                )
-                            ], spacing=3, expand=True)
-                        ], spacing=8)
-                    )
-                )
-                items_column.controls.append(item_card)
-        page.update()
-
-    # --- CATEGORY ROW ---
-    categories = ["All", "Noodles", "K-Food", "Korean Bowls", "Combo", "Toppings", "Drinks"]
-    category_row = ft.Row(
-        [
-            ft.ElevatedButton(
-                cat,
-                on_click=lambda e, c=cat: load_items(c),
-                style=ft.ButtonStyle(
-                    padding=ft.padding.symmetric(horizontal=16, vertical=8),
-                    shape=ft.RoundedRectangleBorder(radius=20),
-                    bgcolor="blue700",
-                    color="white"
-                )
-            ) for cat in categories
-        ],
-        spacing=8,
-        scroll=ft.ScrollMode.AUTO
-    )
 
     # --- FOOTER NAVIGATION ---
     def nav_icon(icon, label, tab, on_click, active_tab):
@@ -249,7 +90,7 @@ def home_view(page: ft.Page):
         margin=0,
         height=60
     )
-    
+
     def handle_checkout(e=None):
         cart_items = show_checkout.get("cart_items", [])
         total = show_checkout.get("total", 0)
@@ -282,10 +123,10 @@ def home_view(page: ft.Page):
         render_main_content()
         page.snack_bar = ft.SnackBar(ft.Text("Order placed!"), open=True)
         page.update()
-    
+
     def refresh_cart():
         render_main_content()
-    
+
     # --- MAIN CONTENT RENDERERS ---
     def render_main_content():
         if show_checkout["value"]:
@@ -302,7 +143,6 @@ def home_view(page: ft.Page):
         if tab == "food":
             render_food()
         elif tab == "cart":
-            # Use the new cart_view
             content_container.content = cart_view(
                 db=db,
                 user_id=user_id,
@@ -320,69 +160,22 @@ def home_view(page: ft.Page):
         elif tab == "profile":
             render_profile()
 
-    # --- FOOD TAB ---
     def render_food():
         update_cart_badge()
-        content_container.content = ft.Column([
-            # Header
-            ft.Container(
-                content=ft.Column([
-                    ft.Container(
-                        content=ft.Image(
-                            src="assets/brand.png",
-                            width=160,
-                            height=40,
-                            fit=ft.ImageFit
-                        ),
-                        padding=0,
-                        margin=0
-                    ),
-                    ft.Container(
-                        content=ft.Text(
-                            "Order your favorite food!",
-                            size=11,
-                            color="grey600",
-                            italic=True
-                        ),
-                        padding=0,
-                        margin=0
-                    ),
-                    ft.Container(height=20),
-                    ft.TextField(
-                        label="Search food items...",
-                        on_change=lambda e: search_items(e.control.value),
-                        prefix_icon=ft.Icons.SEARCH,
-                        text_size=13,
-                        height=40,
-                        border_radius=8
-                    )
-                ], spacing=0),
-                padding=ft.padding.only(left=10, right=10, top=8),
-                bgcolor="white"
-            ),
-            ft.Container(
-                content=category_row,
-                padding=10,
-                bgcolor="white",
-                height=60
-            ),
-            ft.Container(
-                content=ft.Column([items_column], scroll=ft.ScrollMode.AUTO),
-                expand=True,
-                padding=10,
-                bgcolor="grey100"
-            ),
-        ], expand=True, spacing=0)
-        load_items()
+        content_container.content = food_view(
+            db=db,
+            user_id=user_id,
+            update_cart_badge=update_cart_badge,
+            add_to_cart=add_to_cart,
+            page=page
+        )
         page.update()
 
-    # --- ORDER HISTORY TAB ---
     def render_orders():
         update_cart_badge()
         content_container.content = order_history_widget(page, switch_tab)
         page.update()
 
-    # --- PROFILE TAB ---
     def render_profile():
         content_container.content = profile_view_widget(page, switch_tab)
         update_cart_badge()
