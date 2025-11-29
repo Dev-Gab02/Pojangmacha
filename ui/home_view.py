@@ -10,8 +10,10 @@ from core.cart_service import get_user_cart, add_to_cart, update_cart_quantity, 
 from core.profile_service import get_user_by_id
 from datetime import datetime
 import time
+from ui.checkout_view import checkout_view
 from ui.profile_view import profile_view_widget
 from ui.order_history_view import order_history_widget
+from ui.cart_view import cart_view  # <-- Import your new cart view
 
 def home_view(page: ft.Page):
     db = SessionLocal()
@@ -29,6 +31,7 @@ def home_view(page: ft.Page):
 
     # State
     nav_state = {"tab": "food"}  # "food", "cart", "orders", "profile"
+    show_checkout = {"value": False}
     items_column = ft.Column(spacing=10)
     cart_count_text = ft.Text("", color="white", size=10, weight="bold")
     cart_badge_container = ft.Container(
@@ -226,6 +229,7 @@ def home_view(page: ft.Page):
 
     def switch_tab(tab):
         nav_state["tab"] = tab
+        show_checkout["value"] = False
         render_main_content()
         page.update()
 
@@ -245,14 +249,72 @@ def home_view(page: ft.Page):
         margin=0,
         height=60
     )
+    
+    def handle_checkout(e=None):
+        cart_items = show_checkout.get("cart_items", [])
+        total = show_checkout.get("total", 0)
+        if not cart_items:
+            page.snack_bar = ft.SnackBar(ft.Text("No items to checkout."), open=True)
+            page.update()
+            return
 
+        # Create new order
+        new_order = Order(user_id=user_id, total_price=total, status="Pending", created_at=datetime.now())
+        db.add(new_order)
+        db.commit()
+        db.refresh(new_order)
+
+        # Add order items
+        for item in cart_items:
+            food = db.query(FoodItem).filter(FoodItem.name == item["name"]).first()
+            if food:
+                db.add(OrderItem(order_id=new_order.id, food_id=food.id, quantity=item["quantity"], subtotal=item["subtotal"]))
+        db.commit()
+
+        # Clear cart
+        for cart_item in get_user_cart(db, user_id):
+            remove_from_cart(db, cart_item.id)
+        update_cart_badge()
+
+        # Show confirmation and go to orders tab
+        show_checkout["value"] = False
+        nav_state["tab"] = "orders"
+        render_main_content()
+        page.snack_bar = ft.SnackBar(ft.Text("Order placed!"), open=True)
+        page.update()
+    
+    def refresh_cart():
+        render_main_content()
+    
     # --- MAIN CONTENT RENDERERS ---
     def render_main_content():
+        if show_checkout["value"]:
+            content_container.content = checkout_view(
+                page,
+                on_back=lambda e: switch_tab("cart"),
+                total=show_checkout.get("total", 0),
+                cart_items=show_checkout.get("cart_items", []),
+                on_checkout=handle_checkout
+            )
+            page.update()
+            return
         tab = nav_state["tab"]
         if tab == "food":
             render_food()
         elif tab == "cart":
-            render_cart()
+            # Use the new cart_view
+            content_container.content = cart_view(
+                db=db,
+                user_id=user_id,
+                get_user_cart=get_user_cart,
+                remove_from_cart=remove_from_cart,
+                update_cart_quantity=update_cart_quantity,
+                update_cart_badge=update_cart_badge,
+                switch_tab=switch_tab,
+                show_checkout_page=show_checkout_page,
+                refresh_cart=refresh_cart
+            )
+            page.update()
         elif tab == "orders":
             render_orders()
         elif tab == "profile":
@@ -265,25 +327,33 @@ def home_view(page: ft.Page):
             # Header
             ft.Container(
                 content=ft.Column([
-                    ft.Image(
-                        src="assets/brand.png",
-                        width=180,
-                        height=60,
-                        fit=ft.ImageFit.CONTAIN
+                    ft.Container(
+                        content=ft.Image(
+                            src="assets/brand.png",
+                            width=160,
+                            height=40,
+                            fit=ft.ImageFit
+                        ),
+                        padding=0,
+                        margin=0
                     ),
-                    ft.Text(
-                        "Order your favorite food!",
-                        size=11,
-                        color="grey600",
-                        italic=True
+                    ft.Container(
+                        content=ft.Text(
+                            "Order your favorite food!",
+                            size=11,
+                            color="grey600",
+                            italic=True
+                        ),
+                        padding=0,
+                        margin=0
                     ),
-                    ft.Container(height=12),
+                    ft.Container(height=20),
                     ft.TextField(
                         label="Search food items...",
                         on_change=lambda e: search_items(e.control.value),
                         prefix_icon=ft.Icons.SEARCH,
                         text_size=13,
-                        height=50,
+                        height=40,
                         border_radius=8
                     )
                 ], spacing=0),
@@ -306,188 +376,6 @@ def home_view(page: ft.Page):
         load_items()
         page.update()
 
-    # --- CART TAB ---
-    def render_cart():
-        update_cart_badge()
-        cart_items = get_user_cart(db, user_id)
-        cart_column = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
-        total = 0
-        if not cart_items:
-            cart_column.controls.append(
-                ft.Container(
-                    content=ft.Column([
-                        ft.Icon(ft.Icons.SHOPPING_CART_OUTLINED, size=80, color="grey"),
-                        ft.Text("Your cart is empty", size=16, color="grey"),
-                        ft.TextButton(
-                            "Start Shopping",
-                            on_click=lambda e: switch_tab("food")
-                        )
-                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                    padding=40,
-                    alignment=ft.alignment.center
-                )
-            )
-        else:
-            for cart_item in cart_items:
-                food = db.query(FoodItem).filter(FoodItem.id == cart_item.food_id).first()
-                if not food:
-                    remove_from_cart(db, cart_item.id)
-                    continue
-                quantity = cart_item.quantity
-                subtotal = food.price * quantity
-                total += subtotal
-                cart_column.controls.append(
-                    ft.Card(
-                        content=ft.Container(
-                            padding=10,
-                            content=ft.Row([
-                                ft.Image(
-                                    src=food.image,
-                                    width=60,
-                                    height=60,
-                                    fit=ft.ImageFit.COVER,
-                                    border_radius=8
-                                ) if food.image and os.path.exists(food.image) else ft.Container(
-                                    width=60,
-                                    height=60,
-                                    bgcolor="grey300",
-                                    border_radius=8
-                                ),
-                                ft.Column([
-                                    ft.Text(food.name, weight="bold", size=14),
-                                    ft.Text(f"₱{food.price:.2f} each", size=11, color="grey700"),
-                                    ft.Text(f"Subtotal: ₱{subtotal:.2f}", size=12, weight="bold", color="green"),
-                                ], spacing=2, expand=True),
-                                ft.Column([
-                                    ft.Row([
-                                        ft.IconButton(
-                                            icon=ft.Icons.REMOVE,
-                                            icon_size=16,
-                                            on_click=lambda e, cid=cart_item.id: update_quantity(cid, -1),
-                                            tooltip="Decrease"
-                                        ),
-                                        ft.Text(str(quantity), size=14, weight="bold"),
-                                        ft.IconButton(
-                                            icon=ft.Icons.ADD,
-                                            icon_size=16,
-                                            on_click=lambda e, cid=cart_item.id: update_quantity(cid, 1),
-                                            tooltip="Increase"
-                                        ),
-                                    ], spacing=2),
-                                    ft.IconButton(
-                                        icon=ft.Icons.DELETE,
-                                        icon_color="red",
-                                        icon_size=18,
-                                        tooltip="Remove",
-                                        on_click=lambda e, cid=cart_item.id: remove_item(cid)
-                                    )
-                                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-                            ], spacing=8, alignment=ft.MainAxisAlignment.START)
-                        )
-                    )
-                )
-        # Header (like profile)
-        content_container.content = ft.Column([
-            ft.Container(
-                content=ft.Column([
-                    ft.Text("Cart", size=20, weight="bold", color="black"),
-                    ft.Divider(height=1, color="grey300", thickness=1)
-                ], spacing=0),
-                bgcolor="white",
-                padding=ft.padding.only(left=15, right=15, top=15, bottom=8)
-            ),
-            ft.Container(
-                content=cart_column,
-                expand=True,
-                padding=10,
-                bgcolor="grey100"
-            ),
-            ft.Container(
-                content=ft.Column([
-                    ft.Divider(),
-                    ft.Row([
-                        ft.Text(f"Items: {len(cart_items)}", size=14),
-                        ft.Text(f"Total: ₱{total:.2f}", size=18, weight="bold"),
-                    ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                    ft.ElevatedButton(
-                        "Checkout",
-                        on_click=lambda e: checkout(),
-                        disabled=len(cart_items) == 0,
-                        style=ft.ButtonStyle(
-                            bgcolor="green700" if len(cart_items) > 0 else "grey",
-                            color="white"
-                        ),
-                        width=350,
-                        height=45
-                    )
-                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=8),
-                bgcolor="white",
-                padding=12,
-                shadow=ft.BoxShadow(blur_radius=10, color="grey300")
-            )
-        ], expand=True, spacing=0)
-        page.update()
-
-    def update_quantity(cart_item_id, change):
-        cart_item = db.query(Cart).filter(Cart.id == cart_item_id).first()
-        if cart_item:
-            new_quantity = cart_item.quantity + change
-            if new_quantity <= 0:
-                remove_from_cart(db, cart_item_id)
-            else:
-                update_cart_quantity(db, cart_item_id, new_quantity)
-        update_cart_badge()
-        render_cart()
-
-    def remove_item(cart_item_id):
-        remove_from_cart(db, cart_item_id)
-        update_cart_badge()
-        render_cart()
-
-    def checkout():
-        cart_items = get_user_cart(db, user_id)
-        if not cart_items:
-            page.snack_bar = ft.SnackBar(ft.Text("Cart is empty!"), open=True)
-            page.update()
-            return
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            page.snack_bar = ft.SnackBar(ft.Text("User not found"), open=True)
-            page.go("/login")
-            return
-        total = 0
-        for cart_item in cart_items:
-            food = db.query(FoodItem).filter(FoodItem.id == cart_item.food_id).first()
-            if food:
-                total += food.price * cart_item.quantity
-        new_order = Order(user_id=user.id, total_price=total, status="Pending", created_at=datetime.utcnow())
-        db.add(new_order)
-        db.commit()
-        db.refresh(new_order)
-        for cart_item in cart_items:
-            food = db.query(FoodItem).filter(FoodItem.id == cart_item.food_id).first()
-            if food:
-                order_item = OrderItem(
-                    order_id=new_order.id,
-                    food_id=cart_item.food_id,
-                    quantity=cart_item.quantity,
-                    subtotal=food.price * cart_item.quantity
-                )
-                db.add(order_item)
-        db.commit()
-        db.query(Cart).filter(Cart.user_id == user_id).delete()
-        db.commit()
-        db.add(AuditLog(user_email=user.email, action=f"Placed order #{new_order.id}"))
-        db.commit()
-        update_cart_badge()
-        page.snack_bar = ft.SnackBar(
-            ft.Text(f"✅ Order #{new_order.id} placed successfully!"),
-            bgcolor=ft.Colors.GREEN,
-            open=True
-        )
-        nav_state["tab"] = "orders"
-        render_main_content()
-
     # --- ORDER HISTORY TAB ---
     def render_orders():
         update_cart_badge()
@@ -499,6 +387,27 @@ def home_view(page: ft.Page):
         content_container.content = profile_view_widget(page, switch_tab)
         update_cart_badge()
         page.update()
+
+    def show_checkout_page():
+        # Build cart_items and total for checkout
+        cart_items_list = []
+        total = 0
+        for cart_item in get_user_cart(db, user_id):
+            food = db.query(FoodItem).filter(FoodItem.id == cart_item.food_id).first()
+            if not food:
+                continue
+            quantity = cart_item.quantity
+            subtotal = food.price * quantity
+            total += subtotal
+            cart_items_list.append({
+                "quantity": quantity,
+                "name": food.name,
+                "subtotal": subtotal
+            })
+        show_checkout["value"] = True
+        show_checkout["cart_items"] = cart_items_list
+        show_checkout["total"] = total
+        render_main_content()
 
     # --- INITIAL RENDER ---
     page.clean()
