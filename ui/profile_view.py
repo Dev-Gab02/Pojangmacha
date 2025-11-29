@@ -481,7 +481,7 @@ def profile_view_widget(page, on_nav):
                 ),
                 ft.Divider(height=1, color="grey300", thickness=1)
             ], spacing=0)
-            header_container.bgcolor = "grey100"
+            header_container.bgcolor = "white"
             header_container.padding = 0
             
             content_container.content = ft.Column(

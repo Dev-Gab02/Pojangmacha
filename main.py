@@ -25,7 +25,7 @@ from ui.signup_view import signup_view
 from ui.home_view import home_view
 from ui.admin_view import admin_view
 from ui.analytics_view import analytics_view
-from ui.order_history_view import order_history_widget as order_history
+from ui.order_history_view import order_history_widget as order_history_view
 from ui.profile_view import profile_view_widget as profile_view
 from ui.reset_password_view import reset_password_view
 
