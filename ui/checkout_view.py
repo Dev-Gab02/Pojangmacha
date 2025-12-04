@@ -37,8 +37,7 @@ def checkout_view(page, on_back, total=0, cart_items=None, on_checkout=None):
         bgcolor="white",
         border_radius=12,
         padding=16,
-        margin=ft.margin.symmetric(vertical=16, horizontal=16),
-        shadow=ft.BoxShadow(blur_radius=8, color="grey200")
+        margin=ft.margin.symmetric(vertical=16, horizontal=16)
     )
 
     # --- Order summary container ---
@@ -57,17 +56,13 @@ def checkout_view(page, on_back, total=0, cart_items=None, on_checkout=None):
 
     order_summary_container = ft.Container(
         content=ft.Column([
-            ft.Row([
-                ft.Icon(ft.Icons.RECEIPT_LONG_OUTLINED, size=20, color="grey700"),
-                ft.Text("Order summary", size=16, weight="bold", color="black"),
-            ], spacing=8),
+            ft.Text("Order summary", size=16, weight="bold", color="black"),
             *order_summary_rows
         ], spacing=8),
         bgcolor="white",
         border_radius=12,
         padding=16,
-        margin=ft.margin.symmetric(vertical=0, horizontal=16),
-        shadow=ft.BoxShadow(blur_radius=8, color="grey200")
+        margin=ft.margin.symmetric(vertical=0, horizontal=16)
     )
 
     # --- Checkout button and total row at the very bottom ---
@@ -89,23 +84,24 @@ def checkout_view(page, on_back, total=0, cart_items=None, on_checkout=None):
             )
         ], spacing=12, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
         bgcolor="white",
-        padding=ft.padding.only(left=25, right=25, top=14, bottom=12), 
-        shadow=ft.BoxShadow(blur_radius=10, color="grey300")
+        padding=ft.padding.only(left=25, right=25, top=14, bottom=12)
     )
 
     # --- Main layout: scrollable content + fixed footer ---
     return ft.Column([
+        header,
         ft.Container(
             content=ft.Column([
-                header,
                 payment_method_container,
                 order_summary_container,
-            ], spacing=0),
+            ], spacing=0, scroll=ft.ScrollMode.AUTO),
             expand=True,
-            bgcolor="grey100",
-            padding=0,
-            margin=0,
-            # Optionally add scroll if you want the content to scroll
+            padding=ft.padding.only(bottom=10),
+            gradient=ft.LinearGradient(
+                begin=ft.alignment.top_center,
+                end=ft.alignment.bottom_center,
+                colors=["#FFF6F6", "#F7C171", "#D49535"]
+            )
         ),
         checkout_footer
     ], expand=True, spacing=0)
