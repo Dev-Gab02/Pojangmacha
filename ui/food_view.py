@@ -9,7 +9,7 @@ def food_view(
     add_to_cart,
     page,
 ):
-    items_column = ft.Column(spacing=10)
+    items_column = ft.Column(spacing=3)
 
     def add_to_cart_directly(item):
         add_to_cart(db, user_id, item.id, quantity=1)
@@ -30,13 +30,22 @@ def food_view(
             content=ft.Container(
                 padding=10,
                 content=ft.Row([
-                    ft.Container(width=80, height=80, bgcolor="grey300", border_radius=8),
+                    ft.Container(
+                        width=80, 
+                        height=80, 
+                        bgcolor="grey300",  # Image placeholder
+                        border_radius=8,
+                        border=ft.border.all(1, "grey300")
+                    ),
                     ft.Column([
-                        ft.Container(width=150, height=16, bgcolor="grey300", border_radius=4),
-                        ft.Container(width=120, height=12, bgcolor="grey300", border_radius=4),
-                        ft.Container(width=80, height=14, bgcolor="grey300", border_radius=4),
-                    ], spacing=6, expand=True)
-                ], spacing=8)
+                        ft.Container(width=150, height=16, bgcolor="grey300", border_radius=4),  # Name
+                        ft.Container(width=120, height=12, bgcolor="grey400", border_radius=4),  # Description
+                        ft.Container(width=80, height=14, bgcolor="grey300", border_radius=4),   # Price
+                    ], spacing=6, expand=True),
+                    ft.Container(width=28, height=28, bgcolor="grey300", border_radius=14)  # Add button
+                ], spacing=8, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                bgcolor='white', 
+                border_radius=12
             )
         )
 
@@ -60,34 +69,45 @@ def food_view(
                 content=ft.Container(
                     padding=10,
                     content=ft.Row([
-                        ft.Image(
-                            src=item.image,
-                            width=80,
-                            height=80,
-                            fit=ft.ImageFit.COVER,
-                            border_radius=8
-                        ) if item.image and os.path.exists(item.image) else ft.Container(
-                            width=80,
-                            height=80,
-                            bgcolor="grey300",
+                        ft.Container(
+                            content=ft.Image(
+                                src=item.image,
+                                width=80,
+                                height=80,
+                                fit=ft.ImageFit.COVER,
+                                border_radius=8
+                            ) if item.image and os.path.exists(item.image) else ft.Container(
+                                width=80,
+                                height=80,
+                                bgcolor="grey300",
+                                border_radius=8
+                            ),
+                            border=ft.border.all(1, "grey300"),
                             border_radius=8
                         ),
                         ft.Column([
-                            ft.Text(item.name, weight="bold", size=14),
+                            ft.Text(item.name, weight="bold", size=14, color="black"),
                             ft.Text(item.description[:30] + "..." if len(item.description) > 30 else item.description, size=10, color="grey700"),
                             ft.Text(f"₱{item.price:.2f}", color="green", size=14, weight="bold"),
                         ], spacing=3, expand=True),
                         ft.IconButton(
                             icon=ft.Icons.ADD_CIRCLE,
-                            icon_color="blue700",
+                            icon_color="#FEB23F",
                             icon_size=28,
                             tooltip="Add to cart",
                             on_click=lambda e, it=item: add_to_cart_directly(it)
                         )
-                    ], spacing=8, alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+                    ], spacing=8, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                    bgcolor='white',
+                    border_radius=12
                 )
             )
-            items_column.controls.append(item_card)
+            items_column.controls.append(
+                ft.Container(
+                    content=item_card,
+                    padding=ft.padding.symmetric(horizontal=10)
+                )
+            )
         if not items_column.controls:
             items_column.controls.append(
                 ft.Container(
@@ -121,34 +141,45 @@ def food_view(
                     content=ft.Container(
                         padding=10,
                         content=ft.Row([
-                            ft.Image(
-                                src=item.image,
-                                width=80,
-                                height=80,
-                                fit=ft.ImageFit.COVER,
-                                border_radius=8
-                            ) if item.image and os.path.exists(item.image) else ft.Container(
-                                width=80,
-                                height=80,
-                                bgcolor="grey300",
+                            ft.Container(
+                                content=ft.Image(
+                                    src=item.image,
+                                    width=80,
+                                    height=80,
+                                    fit=ft.ImageFit.COVER,
+                                    border_radius=8
+                                ) if item.image and os.path.exists(item.image) else ft.Container(
+                                    width=80,
+                                    height=80,
+                                    bgcolor="grey300",
+                                    border_radius=8
+                                ),
+                                border=ft.border.all(1, "grey300"),
                                 border_radius=8
                             ),
                             ft.Column([
-                                ft.Text(item.name, weight="bold", size=14),
-                                ft.Text(item.description[:30] + "...", size=10, color="grey700"),
+                                ft.Text(item.name, weight="bold", size=14, color="black"),
+                                ft.Text(item.description[:30] + "..." if len(item.description) > 30 else item.description, size=10, color="grey700"),
                                 ft.Text(f"₱{item.price:.2f}", color="green", size=14, weight="bold"),
                             ], spacing=3, expand=True),
                             ft.IconButton(
                                 icon=ft.Icons.ADD_CIRCLE,
-                                icon_color="blue700",
+                                icon_color="#FEB23F",
                                 icon_size=28,
                                 tooltip="Add to cart",
                                 on_click=lambda e, it=item: add_to_cart_directly(it)
                             )
-                        ], spacing=8, alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+                        ], spacing=8, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                        bgcolor='white',
+                        border_radius=12
                     )
                 )
-                items_column.controls.append(item_card)
+                items_column.controls.append(
+                    ft.Container(
+                        content=item_card,
+                        padding=ft.padding.symmetric(horizontal=10)
+                    )
+                )
         page.update()
 
     categories = ["All", "Noodles", "K-Food", "Korean Bowls", "Combo", "Toppings", "Drinks"]
@@ -160,8 +191,8 @@ def food_view(
                 style=ft.ButtonStyle(
                     padding=ft.padding.symmetric(horizontal=16, vertical=8),
                     shape=ft.RoundedRectangleBorder(radius=20),
-                    bgcolor="blue700",
-                    color="white"
+                    bgcolor="#FEB23F",
+                    color="black"
                 )
             ) for cat in categories
         ],
@@ -176,8 +207,8 @@ def food_view(
                 ft.Container(
                     content=ft.Image(
                         src="assets/brand.png",
-                        width=160,
-                        height=40,
+                        width=220,
+                        height=50,
                         fit=ft.ImageFit
                     ),
                     padding=0,
@@ -197,16 +228,21 @@ def food_view(
             bgcolor="white"
         ),
         ft.Container(
-            content=category_row,
-            padding=10,
-            bgcolor="white",
-            height=60
-        ),
-        ft.Container(
-            content=ft.Column([items_column], scroll=ft.ScrollMode.AUTO),
+            content=ft.Column([
+                ft.Container(
+                    content=category_row,
+                    padding=10,
+                    height=60
+                ),
+                ft.Column([items_column], scroll=ft.ScrollMode.AUTO, expand=True),
+            ], spacing=0, expand=True),
             expand=True,
-            padding=10,
-            bgcolor="grey100"
+            padding=ft.padding.only(bottom=10),
+            gradient=ft.LinearGradient(
+                begin=ft.alignment.top_center,
+                end=ft.alignment.bottom_center,
+                colors=["#FFF6F6", "#F7C171", "#D49535"]
+            )
         ),
     ], expand=True, spacing=0)
 
