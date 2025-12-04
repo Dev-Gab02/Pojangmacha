@@ -28,13 +28,11 @@ def cart_view(
                 update_cart_quantity(db, cart_item_id, new_quantity)
         update_cart_badge()
         refresh_cart()
-        # You may want to trigger a re-render from home_view
 
     def remove_item(cart_item_id):
         remove_from_cart(db, cart_item_id)
         update_cart_badge()
         refresh_cart()
-        # You may want to trigger a re-render from home_view
 
     if not cart_items:
         cart_column.controls.append(
@@ -48,7 +46,7 @@ def cart_view(
                         "Browse",
                         on_click=lambda e: switch_tab("food"),
                         style=ft.ButtonStyle(
-                            bgcolor="#FEB23F",
+                            bgcolor="#E9190A",
                             color="white"
                         ),
                         width=120,
@@ -81,7 +79,7 @@ def cart_view(
                         tooltip="Remove",
                         on_click=lambda e, cid=cart_item.id: remove_item(cid)
                     ),
-                    ft.Text(str(quantity), size=14, weight="bold"),
+                    ft.Text(str(quantity), size=14, weight="bold", color='black'),
                     ft.IconButton(
                         icon=ft.Icons.ADD,
                         icon_size=16,
@@ -97,7 +95,7 @@ def cart_view(
                         on_click=lambda e, cid=cart_item.id: update_quantity(cid, -1),
                         tooltip="Decrease"
                     ),
-                    ft.Text(str(quantity), size=14, weight="bold"),
+                    ft.Text(str(quantity), size=14, weight="bold", color='black'),
                     ft.IconButton(
                         icon=ft.Icons.ADD,
                         icon_size=16,
@@ -107,30 +105,39 @@ def cart_view(
                 ], spacing=2, alignment=ft.MainAxisAlignment.CENTER)
 
             cart_column.controls.append(
-                ft.Card(
-                    content=ft.Container(
-                        padding=10,
-                        content=ft.Row([
-                            ft.Image(
-                                src=food.image,
-                                width=60,
-                                height=60,
-                                fit=ft.ImageFit.COVER,
-                                border_radius=8
-                            ) if food.image and os.path.exists(food.image) else ft.Container(
-                                width=60,
-                                height=60,
-                                bgcolor="grey300",
-                                border_radius=8
-                            ),
-                            ft.Column([
-                                ft.Text(food.name, weight="bold", size=14),
-                                ft.Text(f"₱{food.price:.2f} each", size=11, color="grey700"),
-                                ft.Text(f"Subtotal: ₱{subtotal:.2f}", size=12, weight="bold", color="green"),
-                            ], spacing=2, expand=True),
-                            button_row
-                        ], spacing=8, alignment=ft.MainAxisAlignment.CENTER)
-                    )
+                ft.Container(
+                    content=ft.Card(
+                        content=ft.Container(
+                            padding=10,
+                            content=ft.Row([
+                                ft.Container(
+                                    content=ft.Image(
+                                        src=food.image,
+                                        width=60,
+                                        height=60,
+                                        fit=ft.ImageFit.COVER,
+                                        border_radius=8
+                                    ) if food.image and os.path.exists(food.image) else ft.Container(
+                                        width=60,
+                                        height=60,
+                                        bgcolor="grey300",
+                                        border_radius=8
+                                    ),
+                                    border=ft.border.all(1, "grey300"),
+                                    border_radius=8
+                                ),
+                                ft.Column([
+                                    ft.Text(food.name, weight="bold", size=14, color="black"),
+                                    ft.Text(f"₱{food.price:.2f} each", size=11, color="grey700"),
+                                    ft.Text(f"Subtotal: ₱{subtotal:.2f}", size=12, weight="bold", color="green"),
+                                ], spacing=2, expand=True),
+                                button_row
+                            ], spacing=8, alignment=ft.MainAxisAlignment.CENTER),
+                            bgcolor="white",
+                            border_radius=12
+                        )
+                    ),
+                    padding=ft.padding.symmetric(horizontal=10)
                 )
             )
 
@@ -141,7 +148,7 @@ def cart_view(
                     ft.Icon(ft.Icons.ADD, color="black", size=20),
                     ft.Text("Add more items", size=14, weight="bold", color="black"),
                 ], spacing=6, alignment=ft.MainAxisAlignment.START),
-                padding=ft.padding.only(left=4, top=0, bottom=0),
+                padding=ft.padding.only(left=14, top=0, bottom=0),
                 on_click=lambda e: switch_tab("food"),
                 ink=True
             )
@@ -162,8 +169,12 @@ def cart_view(
         ft.Container(
             content=cart_column,
             expand=True,
-            padding=10,
-            bgcolor="grey100"
+            padding=ft.padding.only(top=10, bottom=10),
+            gradient=ft.LinearGradient(
+                begin=ft.alignment.top_center,
+                end=ft.alignment.bottom_center,
+                colors=["#FFF6F6", "#F7C171", "#D49535"]
+            )
         ),
         ft.Container(
             content=ft.Column([
@@ -181,7 +192,6 @@ def cart_view(
                 )
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=12),
             bgcolor="white",
-            padding=ft.padding.only(left=0, right=0, top=0, bottom=12),
-            shadow=ft.BoxShadow(blur_radius=10, color="grey300")
+            padding=ft.padding.only(left=0, right=0, top=0, bottom=12)
         )
     ], expand=True, spacing=0)
