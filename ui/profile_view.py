@@ -4,7 +4,7 @@ from core.db import SessionLocal
 from core.profile_service import get_user_by_id, update_profile, change_password
 from models.order import Order
 from models.user import User
-from core.two_fa_service import enable_2fa, disable_2fa
+from core.two_fa_ui_service import show_2fa_settings_dialog
 
 def profile_view_widget(page, on_nav):
     db = SessionLocal()
@@ -59,23 +59,24 @@ def profile_view_widget(page, on_nav):
                 alignment=ft.alignment.center
             )
 
-    # Profile fields for editing
+    # ✅ Profile fields for editing - WHITE BACKGROUNDS
     full_name_field = ft.TextField(
         label="Full Name", 
         value=user.full_name, 
         width=300, 
         color="black", 
-        label_style=ft.TextStyle(color="black")
+        label_style=ft.TextStyle(color="black"),
+        bgcolor="white",
+        filled=True
     )
     
-    # ✅ Email as disabled TextField (looks like input with border)
     email_field = ft.TextField(
         label="Email", 
         value=user.email, 
         width=300, 
         disabled=True, 
         color="grey700",
-        bgcolor="grey100",
+        bgcolor="white",
         label_style=ft.TextStyle(color="grey700"),
         border_color="grey400",
         filled=True
@@ -83,22 +84,72 @@ def profile_view_widget(page, on_nav):
     
     phone_field = ft.TextField(
         label="Phone Number", 
-        value=user.phone or "", 
+        value="" if (user.phone == "set_via_google" or not user.phone) else user.phone,  
         width=300, 
         color="black", 
-        label_style=ft.TextStyle(color="black")
+        label_style=ft.TextStyle(color="black"),
+        bgcolor="white",
+        filled=True
     )
     
     message = ft.Text("", color="green")
 
-    # Password change fields (for users with existing password)
-    old_pass = ft.TextField(label="Current Password", password=True, can_reveal_password=True, width=300, color="black", label_style=ft.TextStyle(color="black"))
-    new_pass = ft.TextField(label="New Password", password=True, can_reveal_password=True, width=300, color="black", label_style=ft.TextStyle(color="black"))
-    confirm_pass = ft.TextField(label="Confirm New Password", password=True, can_reveal_password=True, width=300, color="black", label_style=ft.TextStyle(color="black"))
+    # ✅ Password change fields - WHITE BACKGROUNDS
+    old_pass = ft.TextField(
+        label="Current Password", 
+        password=True, 
+        can_reveal_password=True, 
+        width=300, 
+        color="black", 
+        label_style=ft.TextStyle(color="black"),
+        bgcolor="white",
+        filled=True
+    )
     
-    # Set password fields (for Google users without password)
-    set_new_pass = ft.TextField(label="New Password", password=True, can_reveal_password=True, width=300, color="black", label_style=ft.TextStyle(color="black"))
-    set_confirm_pass = ft.TextField(label="Confirm Password", password=True, can_reveal_password=True, width=300, color="black", label_style=ft.TextStyle(color="black"))
+    new_pass = ft.TextField(
+        label="New Password", 
+        password=True, 
+        can_reveal_password=True, 
+        width=300, 
+        color="black", 
+        label_style=ft.TextStyle(color="black"),
+        bgcolor="white",
+        filled=True
+    )
+    
+    confirm_pass = ft.TextField(
+        label="Confirm New Password", 
+        password=True, 
+        can_reveal_password=True, 
+        width=300, 
+        color="black", 
+        label_style=ft.TextStyle(color="black"),
+        bgcolor="white",
+        filled=True
+    )
+    
+    # Set password fields - WHITE BACKGROUNDS
+    set_new_pass = ft.TextField(
+        label="New Password", 
+        password=True, 
+        can_reveal_password=True, 
+        width=300, 
+        color="black", 
+        label_style=ft.TextStyle(color="black"),
+        bgcolor="white",
+        filled=True
+    )
+    
+    set_confirm_pass = ft.TextField(
+        label="Confirm Password", 
+        password=True, 
+        can_reveal_password=True, 
+        width=300, 
+        color="black", 
+        label_style=ft.TextStyle(color="black"),
+        bgcolor="white",
+        filled=True
+    )
     
     pass_msg = ft.Text("", color="red")
 
@@ -246,213 +297,9 @@ def profile_view_widget(page, on_nav):
                 pass_msg.color = "red"
                 page.update()
 
-    # 2FA Functions
-    dialog_ref = {"current": None}
-    
-    def open_dialog(dlg):
-        close_dialog()
-        dialog_ref["current"] = dlg
-        page.overlay.append(dlg)
-        dlg.open = True
-        page.update()
-
-    def close_dialog(e=None):
-        if dialog_ref["current"]:
-            dialog_ref["current"].open = False
-            if dialog_ref["current"] in page.overlay:
-                page.overlay.remove(dialog_ref["current"])
-            dialog_ref["current"] = None
-        page.update()
-
-    def toggle_2fa(e):
-        fresh_user = db.query(User).filter(User.id == user.id).first()
-        
-        if fresh_user.two_fa_enabled:
-            confirm_dlg = ft.AlertDialog(
-                title=ft.Text("Disable 2FA?", size=16, weight="bold", color="black"),
-                content=ft.Container(
-                    content=ft.Text(
-                        "Are you sure you want to disable two-factor authentication?\n\nThis will make your account less secure.",
-                        size=12,
-                        color="grey700"
-                    ),
-                    width=360
-                ),
-                actions=[
-                    ft.TextButton("Cancel", on_click=close_dialog),
-                    ft.ElevatedButton(
-                        "Disable",
-                        on_click=lambda e: confirm_disable_2fa(),
-                        style=ft.ButtonStyle(bgcolor="red", color="white")
-                    )
-                ]
-            )
-            open_dialog(confirm_dlg)
-        else:
-            enable_2fa_process()
-
-    def confirm_disable_2fa():
-        close_dialog()
-        
-        if disable_2fa(db, user.id):
-            user.two_fa_enabled = False
-            page.snack_bar = ft.SnackBar(
-                ft.Text("✅ Two-Factor Authentication disabled"),
-                bgcolor=ft.Colors.ORANGE
-            )
-            page.snack_bar.open = True
-            page.update()
-            build_ui()
-        else:
-            page.snack_bar = ft.SnackBar(
-                ft.Text("❌ Failed to disable 2FA"),
-                bgcolor=ft.Colors.RED
-            )
-            page.snack_bar.open = True
-            page.update()
-
-    def enable_2fa_process():
-        backup_codes = enable_2fa(db, user.id)
-        
-        if backup_codes:
-            user.two_fa_enabled = True
-            
-            backup_codes_dlg = ft.AlertDialog(
-                title=ft.Text("Save Your Backup Codes", size=16, weight="bold", color="black"),
-                content=ft.Container(
-                    content=ft.Column([
-                        ft.Text(
-                            "Save these codes in a safe place. You'll need them if you lose access to your email.", 
-                            size=12,
-                            color="grey700",
-                            text_align=ft.TextAlign.CENTER
-                        ),
-                        ft.Container(height=8),
-                        ft.Container(
-                            content=ft.Column([
-                                ft.Text(
-                                    code,
-                                    selectable=True,
-                                    size=14,
-                                    weight="bold",
-                                    color="black",
-                                    text_align=ft.TextAlign.CENTER
-                                ) for code in backup_codes
-                            ], 
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                            spacing=5),
-                            bgcolor=ft.Colors.GREY_200,
-                            padding=15,
-                            border_radius=5,
-                            border=ft.border.all(2, ft.Colors.BLUE_200),
-                            alignment=ft.alignment.center
-                        ),
-                        ft.Container(height=8),
-                        ft.Text(
-                            "These codes will only be shown once!", 
-                            color="red", 
-                            size=12,
-                            weight="bold",
-                            text_align=ft.TextAlign.CENTER
-                        ),
-                        ft.Text(
-                            "Each backup code can only be used once.",
-                            size=11,
-                            color="grey600",
-                            text_align=ft.TextAlign.CENTER
-                        )
-                    ], 
-                    tight=True, 
-                    scroll=ft.ScrollMode.AUTO,
-                    spacing=4,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                    width=360
-                ),
-                actions=[
-                    ft.Container(
-                        content=ft.ElevatedButton(
-                            "I've Saved My Codes",
-                            on_click=lambda e: finish_enable_2fa(),
-                            style=ft.ButtonStyle(bgcolor="green", color="white"),
-                            width=200
-                        ),
-                        alignment=ft.alignment.center
-                    )
-                ]
-            )
-            open_dialog(backup_codes_dlg)
-        else:
-            page.snack_bar = ft.SnackBar(
-                ft.Text("❌ Failed to enable 2FA"),
-                bgcolor=ft.Colors.RED
-            )
-            page.snack_bar.open = True
-            page.update()
-
-    def finish_enable_2fa():
-        close_dialog()
-        page.snack_bar = ft.SnackBar(
-            ft.Text("✅ Two-Factor Authentication enabled!"),
-            bgcolor=ft.Colors.GREEN
-        )
-        page.snack_bar.open = True
-        page.update()
-        build_ui()
-
+    # ✅ 2FA Settings - NOW USING IMPORTED FUNCTION
     def show_2fa_settings(e):
-        fresh_user = db.query(User).filter(User.id == user.id).first()
-        
-        two_fa_status_text = ft.Text(
-            f"🟢 Enabled" if fresh_user.two_fa_enabled else "🔴 Disabled",
-            size=14,
-            weight="bold",
-            color="green" if fresh_user.two_fa_enabled else "red"
-        )
-        
-        toggle_btn = ft.Container(
-            content=ft.ElevatedButton(
-                text="Disable" if fresh_user.two_fa_enabled else "Enable",
-                on_click=toggle_2fa,
-                style=ft.ButtonStyle(
-                    bgcolor="red" if fresh_user.two_fa_enabled else "green",
-                    color="white"
-                ),
-                width=200
-            ),
-            alignment=ft.alignment.center
-        )
-        
-        two_fa_dlg = ft.AlertDialog(
-            title=ft.Text("Two-Factor Authentication", size=16, weight="bold", color="black"),
-            content=ft.Container(
-                content=ft.Column([
-                    ft.Text(
-                        "Add an extra layer of security to your account",
-                        size=12,
-                        color="grey700"
-                    ),
-                    ft.Divider(),
-                    ft.Column([
-                        ft.Text("Status:", size=14, weight="bold", color="black"),
-                        two_fa_status_text
-                    ], spacing=4),
-                    ft.Container(height=8),
-                    ft.Text(
-                        "When enabled, you'll receive a 6-digit code via email each time you log in.",
-                        size=12,
-                        color="grey600"
-                    ),
-                    ft.Container(height=8),
-                    toggle_btn
-                ], tight=True, spacing=8),
-                width=360
-            ),
-            actions=[
-                ft.TextButton("Close", on_click=close_dialog)
-            ]
-        )
-        
-        open_dialog(two_fa_dlg)
+        show_2fa_settings_dialog(page, db, user, build_ui)
 
     def toggle_edit(e):
         edit_mode_ref["value"] = not edit_mode_ref["value"]
@@ -567,7 +414,7 @@ def profile_view_widget(page, on_nav):
                             ],
                             spacing=0
                         ),
-                        margin=ft.margin.symmetric(horizontal=15, vertical=10)
+                        margin=ft.margin.symmetric(horizontal=10, vertical=5)
                     ),
                     
                     ft.Container(
@@ -593,7 +440,7 @@ def profile_view_widget(page, on_nav):
                                 on_click=show_2fa_settings,
                                 ink=True
                             ),
-                            ft.Container(height=8),
+                            ft.Container(height=6),
                             ft.Container(
                                 content=ft.Row([
                                     ft.Icon(ft.Icons.LOCATION_ON, color="black", size=24),
@@ -608,7 +455,7 @@ def profile_view_widget(page, on_nav):
                                 on_click=show_coming_soon("Delivery Address"),
                                 ink=True
                             ),
-                            ft.Container(height=8),
+                            ft.Container(height=6),
                             ft.Container(
                                 content=ft.Row([
                                     ft.Icon(ft.Icons.PAYMENT, color="black", size=24),
@@ -623,7 +470,7 @@ def profile_view_widget(page, on_nav):
                                 on_click=show_coming_soon("Payment Method"),
                                 ink=True
                             ),
-                            ft.Container(height=8),
+                            ft.Container(height=6),
                             ft.Container(
                                 content=ft.Row([
                                     ft.Icon(ft.Icons.HELP_OUTLINE, color="black", size=24),
@@ -638,7 +485,7 @@ def profile_view_widget(page, on_nav):
                                 on_click=show_coming_soon("Help & Support"),
                                 ink=True
                             ),
-                            ft.Container(height=8),
+                            ft.Container(height=6),
                             ft.Container(
                                 content=ft.Row([
                                     ft.Icon(ft.Icons.DESCRIPTION, color="black", size=24),
@@ -653,7 +500,7 @@ def profile_view_widget(page, on_nav):
                                 on_click=show_coming_soon("Terms & Policies"),
                                 ink=True
                             ),
-                            ft.Container(height=8),
+                            ft.Container(height=6),
                             ft.Container(
                                 content=ft.Row([
                                     ft.Icon(ft.Icons.SETTINGS, color="black", size=24),
@@ -691,7 +538,7 @@ def profile_view_widget(page, on_nav):
                     ),
                     
                     ft.Container(
-                        content=ft.Text("Version 1.0", size=12, color="grey600", italic=True),
+                        content=ft.Text("Version 1.0", size=12, color="black", italic=True),
                         alignment=ft.alignment.center,
                         padding=ft.padding.only(bottom=20)
                     ),
@@ -781,11 +628,11 @@ def profile_view_widget(page, on_nav):
                     ),
                     ft.Divider(),
                     
-                    # Account Info Section - Email as disabled TextField
+                    # Account Info Section
                     ft.Column([
                         ft.Text("Account Info", size=18, weight="bold", color="black"),
                         full_name_field,
-                        email_field,  # Now uses TextField with disabled=True
+                        email_field,
                         phone_field,
                         ft.ElevatedButton(
                             "Save Changes",
@@ -807,10 +654,15 @@ def profile_view_widget(page, on_nav):
 
     # Main layout
     build_ui()
-    return ft.Container(
-    content=ft.Column([
+    return ft.Column([
         header_container,
-        content_container,
-    ], expand=True, spacing=0),
-    bgcolor="grey100" 
-)
+        ft.Container(
+            content=content_container,
+            expand=True,
+            gradient=ft.LinearGradient(
+                begin=ft.alignment.top_center,
+                end=ft.alignment.bottom_center,
+                colors=["#FFF6F6", "#F7C171", "#D49535"]
+            )
+        )
+    ], expand=True, spacing=0)
