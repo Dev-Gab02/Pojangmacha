@@ -33,12 +33,21 @@ SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "180"))
 SESSION_CHECK_INTERVAL = int(os.getenv("SESSION_CHECK_INTERVAL", "10"))
 WARNING_TIME = int(os.getenv("SESSION_WARNING_TIME", "60"))
 
+# ===== WINDOW SIZE CONFIGURATIONS =====
+MOBILE_WIDTH = 400
+MOBILE_HEIGHT = 700
+DESKTOP_MIN_WIDTH = 1000
+DESKTOP_MIN_HEIGHT = 700
+BREAKPOINT = 800  # Switch from mobile to desktop layout at this width
+
 def main(page: ft.Page):
-    page.window.width = 400
-    page.window.height = 700
+    # ✅ DEFAULT: Mobile size (for login/signup)
+    page.window.width = MOBILE_WIDTH
+    page.window.height = MOBILE_HEIGHT
     page.window.resizable = False
     page.padding = 0
     page.spacing = 0
+    page.theme_mode = ft.ThemeMode.LIGHT 
     
     page.title = "Pojangmacha"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
@@ -51,6 +60,38 @@ def main(page: ft.Page):
     monitor_active = {"value": False}
     warning_dialog_shown = {"value": False}
     last_activity_logged = {"time": time.time()}
+
+    # ✅ Store current layout mode
+    layout_mode = {"current": "mobile"}  # "mobile" or "desktop"
+
+    # ✅ WINDOW RESIZE HANDLER for admin pages
+    def handle_window_resize(e):
+        """Detect window resize and trigger layout update for admin pages"""
+        current_user = page.session.get("user")
+        
+        # Only apply to admin on admin/analytics pages
+        if current_user and current_user.get("role") == "admin":
+            if page.route in ["/admin", "/analytics"]:
+                new_width = page.window.width
+                old_mode = layout_mode["current"]
+                
+                # Determine new mode based on width
+                if new_width > BREAKPOINT:
+                    layout_mode["current"] = "desktop"
+                else:
+                    layout_mode["current"] = "mobile"
+                
+                # Only reload if mode changed
+                if old_mode != layout_mode["current"]:
+                    print(f"🔄 Layout mode changed: {old_mode} → {layout_mode['current']}")
+                    # Reload current view to apply new layout
+                    if page.route == "/admin":
+                        admin_view(page)
+                    elif page.route == "/analytics":
+                        analytics_view(page)
+
+    # ✅ Attach resize handler
+    page.on_resized = handle_window_resize
 
     def current_email():
         u = page.session.get("user")
@@ -69,12 +110,10 @@ def main(page: ft.Page):
     def on_user_activity(e=None):
         current_time = time.time()
         if current_time - last_activity_logged["time"] > 1.0:
-            print(f"👆 User activity detected!")
             last_activity_logged["time"] = current_time
         
         try:
             if warning_dialog_shown["value"]:
-                print("✅ Closing warning due to user activity")
                 close_warning_dialog()
         except Exception:
             pass
@@ -92,7 +131,6 @@ def main(page: ft.Page):
         if hasattr(page, "on_keyboard_event"):
             old_keyboard_handler = page.on_keyboard_event
             page.on_keyboard_event = lambda ev: (on_user_activity(ev), old_keyboard_handler(ev) if old_keyboard_handler else None)
-            print("✅ Keyboard activity handler attached")
     except Exception as ex:
         print(f"⚠️ Keyboard handler error: {ex}")
 
@@ -100,7 +138,6 @@ def main(page: ft.Page):
         if hasattr(page, "on_pointer_move"):
             old_pointer_move = page.on_pointer_move
             page.on_pointer_move = lambda ev: (on_user_activity(ev), old_pointer_move(ev) if old_pointer_move else None)
-            print("✅ Pointer move handler attached")
     except Exception as ex:
         print(f"⚠️ Pointer move handler error: {ex}")
 
@@ -108,7 +145,6 @@ def main(page: ft.Page):
         if hasattr(page, "on_pointer_down"):
             old_pointer_down = page.on_pointer_down
             page.on_pointer_down = lambda ev: (on_user_activity(ev), old_pointer_down(ev) if old_pointer_down else None)
-            print("✅ Pointer click handler attached")
     except Exception as ex:
         print(f"⚠️ Pointer click handler error: {ex}")
 
@@ -121,13 +157,11 @@ def main(page: ft.Page):
         return original_update(*args, **kwargs)
     
     page.update = activity_aware_update
-    print("✅ Page update interceptor installed")
 
     def show_warning_dialog(remaining_seconds):
         if warning_dialog_shown["value"]:
             return
         
-        print(f"⚠️ Showing warning dialog with {remaining_seconds}s remaining")
         warning_dialog_shown["value"] = True
         
         countdown_text = ft.Text(
@@ -141,7 +175,6 @@ def main(page: ft.Page):
             email = current_email()
             if email:
                 refresh_session(email)
-                print("✅ User chose to stay logged in - session refreshed")
             close_warning_dialog()
         
         def logout_now(e):
@@ -194,7 +227,6 @@ def main(page: ft.Page):
             page.dialog = warning_dlg
             warning_dlg.open = True
             original_update()
-            print("✅ Warning dialog displayed")
         except Exception as ex:
             print(f"❌ Error showing warning dialog: {ex}")
             warning_dialog_shown["value"] = False
@@ -208,7 +240,6 @@ def main(page: ft.Page):
                     active, remaining = is_session_active(email, return_remaining=True)
                     
                     if not active or remaining <= 0:
-                        print("⏱️ Countdown ended - session expired")
                         break
                     
                     countdown_text.value = f"{int(remaining)}s"
@@ -219,38 +250,33 @@ def main(page: ft.Page):
                     break
                 
                 time.sleep(1)
-            
-            print("🛑 Countdown thread ended")
         
         countdown_thread = threading.Thread(target=update_countdown, daemon=True)
         countdown_thread.start()
 
     def force_logout():
-        print("🔴 FORCE LOGOUT INITIATED")
-        
         email = current_email()
         if email:
             try:
                 end_session(email)
-                print(f"🔴 Session ended for {email}")
             except Exception as ex:
                 print(f"End session error: {ex}")
         
         monitor_active["value"] = False
-        print("🛑 Monitor deactivated")
-        
         close_warning_dialog()
-        
         page.session.set("user", None)
-        print("🧹 User session cleared")
+        
+        # ✅ Reset to mobile size on logout
+        page.window.width = MOBILE_WIDTH
+        page.window.height = MOBILE_HEIGHT
+        page.window.resizable = False
+        layout_mode["current"] = "mobile"
         
         page.go("/login")
-        print("🔄 Redirected to login")
 
     def stop_session_monitor():
         monitor_active["value"] = False
         close_warning_dialog()
-        print("🛑 Session monitor stopped")
 
     def start_session_monitor():
         if monitor_active["value"]:
@@ -261,13 +287,10 @@ def main(page: ft.Page):
         monitor_active["value"] = True
         
         def session_monitor():
-            print("🚀 Session monitor started")
-            
             while monitor_active["value"]:
                 email = current_email()
                 
                 if not email:
-                    print("⏸️ No user logged in - monitor sleeping")
                     time.sleep(SESSION_CHECK_INTERVAL)
                     continue
                 
@@ -279,10 +302,7 @@ def main(page: ft.Page):
                         active = bool(res)
                         remaining = SESSION_TIMEOUT
                     
-                    print(f"🔍 Session check: active={active}, remaining={remaining:.0f}s")
-                    
                     if not active or remaining <= 0:
-                        print("❌ Session expired - logging out")
                         monitor_active["value"] = False
                         
                         try:
@@ -295,28 +315,21 @@ def main(page: ft.Page):
                     
                     if remaining <= WARNING_TIME and remaining > 0:
                         if not warning_dialog_shown["value"]:
-                            print(f"⚠️ Showing warning - {remaining:.0f}s remaining")
                             show_warning_dialog(remaining)
                 
                 except Exception as ex:
                     print(f"Session monitor error: {ex}")
-                    import traceback
-                    traceback.print_exc()
                 
                 time.sleep(SESSION_CHECK_INTERVAL)
-            
-            print("🛑 Session monitor ended")
         
         thread = threading.Thread(target=session_monitor, daemon=True)
         thread.start()
-        print("✅ New session monitor thread started")
 
     def route_change(e):
         if not splash_shown["value"]:
             splash_shown["value"] = True
             
             def on_splash_complete():
-                print("✅ Splash screen completed")
                 page.go("/login")
             
             splash_view(page, on_splash_complete)
@@ -324,6 +337,34 @@ def main(page: ft.Page):
         
         page.clean()
         current_user = page.session.get("user")
+
+        # ✅ Configure window based on route and role
+        if page.route in ["/login", "/signup", "/logout", "/", "/reset_password"]:
+            # Auth pages: always mobile, not resizable
+            page.window.width = MOBILE_WIDTH
+            page.window.height = MOBILE_HEIGHT
+            page.window.resizable = False
+            layout_mode["current"] = "mobile"
+        elif current_user:
+            user_role = current_user.get("role", "customer")
+            
+            if user_role == "admin" and page.route in ["/admin", "/analytics"]:
+                # ✅ Admin pages: Start mobile but allow resizing
+                page.window.width = MOBILE_WIDTH
+                page.window.height = MOBILE_HEIGHT
+                page.window.resizable = True  # Allow admin to resize
+                
+                # Detect initial size mode
+                if page.window.width > BREAKPOINT:
+                    layout_mode["current"] = "desktop"
+                else:
+                    layout_mode["current"] = "mobile"
+            else:
+                # Customer pages: fixed mobile size
+                page.window.width = MOBILE_WIDTH
+                page.window.height = MOBILE_HEIGHT
+                page.window.resizable = False
+                layout_mode["current"] = "mobile"
 
         if page.route not in ["/login", "/signup", "/logout", "/", "/reset_password"]:
             if not current_user:
@@ -337,10 +378,8 @@ def main(page: ft.Page):
                 try:
                     if not is_session_active(email):
                         start_session(email)
-                        print(f"✅ Session created for {email}")
                     else:
                         refresh_session(email)
-                        print(f"🔄 Session refreshed on route change for {email}")
                     
                     if not monitor_active["value"]:
                         start_session_monitor()
