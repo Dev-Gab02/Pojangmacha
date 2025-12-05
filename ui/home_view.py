@@ -36,7 +36,7 @@ def home_view(page: ft.Page):
     cart_count_text = ft.Text("", color="white", size=10, weight="bold")
     cart_badge_container = ft.Container(
         content=cart_count_text,
-        bgcolor="red",
+        bgcolor="#E9190A",
         border_radius=10,
         padding=ft.padding.symmetric(horizontal=6, vertical=3),
         right=5,
@@ -58,31 +58,45 @@ def home_view(page: ft.Page):
 
     # --- FOOTER NAVIGATION ---
     def nav_icon(icon, label, tab, on_click, active_tab):
+        is_active = tab == active_tab
         return ft.Column([
             ft.IconButton(
                 icon=icon,
                 tooltip=label,
-                icon_color="blue700" if tab == active_tab else "black",
+                icon_color="#E9190A" if is_active else "black",
                 on_click=on_click
             ),
-            ft.Text(label, size=10, text_align=ft.TextAlign.CENTER, color="blue700" if tab == active_tab else "black")
+            ft.Text(label, size=8, text_align=ft.TextAlign.CENTER, color="black")
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0)
 
     def switch_tab(tab):
         nav_state["tab"] = tab
         show_checkout["value"] = False
         render_main_content()
+        update_footer()
+        page.update()
+
+    def update_footer():
+        footer.content = ft.Row([
+            nav_icon(ft.Icons.RESTAURANT_MENU, "Food", "food", lambda e: switch_tab("food"), nav_state["tab"]),
+            ft.Stack([
+                nav_icon(ft.Icons.SHOPPING_CART, "Cart", "cart", lambda e: switch_tab("cart"), nav_state["tab"]),
+                cart_badge_container
+            ], width=50, height=50),
+            nav_icon(ft.Icons.HISTORY, "Orders", "orders", lambda e: switch_tab("orders"), nav_state["tab"]),
+            nav_icon(ft.Icons.PERSON, "Profile", "profile", lambda e: switch_tab("profile"), nav_state["tab"]),
+        ], alignment=ft.MainAxisAlignment.SPACE_AROUND)
         page.update()
 
     footer = ft.Container(
         content=ft.Row([
-            nav_icon(ft.Icons.RESTAURANT_MENU, "Food", "food", lambda e: switch_tab("food"), lambda: nav_state["tab"]),
+            nav_icon(ft.Icons.RESTAURANT_MENU, "Food", "food", lambda e: switch_tab("food"), nav_state["tab"]),
             ft.Stack([
-                nav_icon(ft.Icons.SHOPPING_CART, "Cart", "cart", lambda e: switch_tab("cart"), lambda: nav_state["tab"]),
+                nav_icon(ft.Icons.SHOPPING_CART, "Cart", "cart", lambda e: switch_tab("cart"), nav_state["tab"]),
                 cart_badge_container
             ], width=50, height=50),
-            nav_icon(ft.Icons.HISTORY, "Orders", "orders", lambda e: switch_tab("orders"), lambda: nav_state["tab"]),
-            nav_icon(ft.Icons.PERSON, "Profile", "profile", lambda e: switch_tab("profile"), lambda: nav_state["tab"]),
+            nav_icon(ft.Icons.HISTORY, "Orders", "orders", lambda e: switch_tab("orders"), nav_state["tab"]),
+            nav_icon(ft.Icons.PERSON, "Profile", "profile", lambda e: switch_tab("profile"), nav_state["tab"]),
         ], alignment=ft.MainAxisAlignment.SPACE_AROUND),
         bgcolor="white",
         padding=ft.padding.symmetric(vertical=6),
@@ -173,7 +187,7 @@ def home_view(page: ft.Page):
 
     def render_orders():
         update_cart_badge()
-        content_container.content = order_history_widget(page, switch_tab)
+        content_container.content = order_history_widget(page, switch_tab, update_cart_badge)
         page.update()
 
     def render_profile():
