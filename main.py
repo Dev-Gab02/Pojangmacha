@@ -7,7 +7,7 @@ import flet as ft
 # Load environment variables
 load_dotenv()
 
-# Import all models FIRST to ensure SQLAlchemy relationships are registered
+# Import all models FIRST
 from models.user import User
 from models.food_item import FoodItem
 from models.order import Order, OrderItem
@@ -38,7 +38,7 @@ MOBILE_WIDTH = 400
 MOBILE_HEIGHT = 700
 DESKTOP_MIN_WIDTH = 1000
 DESKTOP_MIN_HEIGHT = 700
-BREAKPOINT = 800  # Switch from mobile to desktop layout at this width
+BREAKPOINT = 800
 
 def main(page: ft.Page):
     # ✅ DEFAULT: Mobile size (for login/signup)
@@ -62,7 +62,7 @@ def main(page: ft.Page):
     last_activity_logged = {"time": time.time()}
 
     # ✅ Store current layout mode
-    layout_mode = {"current": "mobile"}  # "mobile" or "desktop"
+    layout_mode = {"current": "mobile"}
 
     # ✅ WINDOW RESIZE HANDLER for admin pages
     def handle_window_resize(e):
@@ -76,7 +76,7 @@ def main(page: ft.Page):
                 old_mode = layout_mode["current"]
                 
                 # Determine new mode based on width
-                if new_width > BREAKPOINT:
+                if new_width >= BREAKPOINT:
                     layout_mode["current"] = "desktop"
                 else:
                     layout_mode["current"] = "mobile"
@@ -349,13 +349,18 @@ def main(page: ft.Page):
             user_role = current_user.get("role", "customer")
             
             if user_role == "admin" and page.route in ["/admin", "/analytics"]:
-                # ✅ Admin pages: Start mobile but allow resizing
-                page.window.width = MOBILE_WIDTH
-                page.window.height = MOBILE_HEIGHT
-                page.window.resizable = True  # Allow admin to resize
+                # ✅ Admin pages: Allow resizing, keep current size
+                page.window.resizable = True
                 
-                # Detect initial size mode
-                if page.window.width > BREAKPOINT:
+                # Don't force size change - preserve current dimensions
+                # Only set initial size if window size is None or too small
+                if not page.window.width or page.window.width < MOBILE_WIDTH:
+                    page.window.width = MOBILE_WIDTH
+                if not page.window.height or page.window.height < MOBILE_HEIGHT:
+                    page.window.height = MOBILE_HEIGHT
+                
+                # Detect mode based on current width
+                if page.window.width >= BREAKPOINT:
                     layout_mode["current"] = "desktop"
                 else:
                     layout_mode["current"] = "mobile"
@@ -414,6 +419,7 @@ def main(page: ft.Page):
         elif page.route == "/admin":
             admin_view(page)
         elif page.route == "/analytics":
+            # ✅ Analytics - Don't change window size, keep current
             analytics_view(page)
         elif page.route == "/orders":
             order_history_view(page)
