@@ -1,6 +1,11 @@
 import flet as ft
-from core.two_fa_service import enable_2fa, disable_2fa
+import threading
+from core.two_fa_service import enable_2fa, disable_2fa, send_2fa_code, verify_2fa_code, verify_backup_code
+from core.email_service import verify_code, resend_verification_code
+from core.auth_service import create_user
 from models.user import User
+
+# ===== PROFILE 2FA DIALOGS =====
 
 def show_2fa_settings_dialog(page, db, user, on_change_callback):
     """Show 2FA settings dialog with enable/disable toggle"""
@@ -248,4 +253,342 @@ def show_disable_2fa_dialog(page, db, user, on_success_callback):
     )
     page.overlay.append(dialog)
     dialog.open = True
+    page.update()
+
+
+# ===== LOGIN 2FA DIALOG =====
+
+def show_login_2fa_dialog(page, db, user, on_success_callback, on_cancel_callback=None):
+    """Show 2FA verification dialog for login
+    
+    Args:
+        page: Flet page object
+        db: Database session
+        user: User object
+        on_success_callback: Function to call on successful verification
+        on_cancel_callback: Optional function to call when user cancels (for UI cleanup)
+    """
+    
+    # Single input for both 2FA code and backup code
+    code_input = ft.TextField(
+        label="Enter 6-digit or backup code",
+        label_style=ft.TextStyle(color="white"),
+        color="white",
+        width=300,
+        max_length=9,
+        text_align=ft.TextAlign.CENTER,
+        border_radius=12,
+        filled=True,
+        bgcolor="transparent",
+        border_color="white",
+        focused_border_color="orange",
+        text_size=16,
+        height=55
+    )
+    
+    dialog_message = ft.Text(
+        f"Code sent to {user.email}",
+        size=12,
+        color="white",
+        text_align=ft.TextAlign.CENTER
+    )
+    
+    def verify_code_input(ev):
+        """Auto-detect and verify 2FA code or backup code"""
+        code = code_input.value
+        
+        if not code or not code.strip():
+            dialog_message.value = "❌ Please enter a code"
+            dialog_message.color = "red"
+            page.update()
+            return
+        
+        code = code.strip()
+        
+        # Auto-detect: 6 digits = 2FA code, XXXX-XXXX format = backup code
+        if len(code) == 6 and code.isdigit():
+            # Verify as 2FA code
+            if verify_2fa_code(user.email, code):
+                close_2fa_dialog()
+                on_success_callback(user)
+                return
+            else:
+                dialog_message.value = "❌ Invalid 2FA code"
+                dialog_message.color = "red"
+                page.update()
+        
+        elif len(code) == 9 and code[4] == '-':
+            # Verify as backup code
+            fresh_user = db.query(User).filter(User.id == user.id).first()
+            if verify_backup_code(fresh_user, code):
+                db.commit()
+                close_2fa_dialog()
+                
+                page.snack_bar = ft.SnackBar(
+                    ft.Text("⚠️ Backup code used. Generate new codes in your profile."),
+                    bgcolor=ft.Colors.ORANGE
+                )
+                page.snack_bar.open = True
+                
+                on_success_callback(user)
+                return
+            else:
+                dialog_message.value = "❌ Invalid backup code"
+                dialog_message.color = "red"
+                page.update()
+        
+        else:
+            dialog_message.value = "❌ Invalid format. Enter 6 digits or XXXX-XXXX"
+            dialog_message.color = "red"
+            page.update()
+    
+    def resend_code_action(ev):
+        """Resend 2FA code"""
+        dialog_message.value = "Resending code..."
+        dialog_message.color = "blue700"
+        page.update()
+        
+        def resend_thread():
+            if send_2fa_code(user.email):
+                dialog_message.value = f"Code sent to {user.email}"
+                dialog_message.color = "white"
+            else:
+                dialog_message.value = "❌ Failed to send code"
+                dialog_message.color = "red"
+            page.update()
+        
+        thread = threading.Thread(target=resend_thread, daemon=True)
+        thread.start()
+
+    def cancel_2fa(ev):
+        """Cancel 2FA verification"""
+        close_2fa_dialog()
+        # ✅ ADDED: Call cancel callback to reset login UI
+        if on_cancel_callback:
+            on_cancel_callback()
+    
+    def close_2fa_dialog():
+        """Close the 2FA dialog"""
+        try:
+            two_fa_dialog.open = False
+            page.update()
+        except Exception as ex:
+            print(f"Close 2FA dialog error: {ex}")
+    
+    # Resend button (centered text button)
+    resend_btn = ft.Container(
+        content=ft.TextButton(
+            "Resend Code",
+            on_click=resend_code_action
+        ),
+        alignment=ft.alignment.center
+    )
+    
+    # 2FA Dialog
+    two_fa_dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Container(
+            content=ft.Text(
+                "Two-Factor Authentication",
+                size=16,
+                weight="bold",
+                color="white",
+                text_align=ft.TextAlign.CENTER
+            ),
+            alignment=ft.alignment.center
+        ),
+        title_padding=ft.padding.only(left=20, right=20, top=20, bottom=0),
+        content=ft.Container(
+            content=ft.Column([
+                ft.Text(
+                    "Enter the code sent to your email",
+                    size=12,
+                    color="white",
+                    text_align=ft.TextAlign.CENTER
+                ),
+                ft.Container(height=10),
+                code_input,
+                ft.Container(height=10),
+                resend_btn,
+                ft.Container(height=5),
+                dialog_message
+            ], tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
+            width=300,
+            padding=ft.padding.only(left=20, right=20, top=0, bottom=0)
+        ),
+        actions=[
+            ft.TextButton("Cancel", on_click=cancel_2fa),
+            ft.ElevatedButton(
+                "Verify",
+                on_click=verify_code_input,
+                style=ft.ButtonStyle(bgcolor="green", color="white")
+            )
+        ],
+        actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0)
+    )
+    
+    page.overlay.append(two_fa_dialog)
+    two_fa_dialog.open = True
+    page.update()
+
+
+# ===== SIGNUP EMAIL VERIFICATION DIALOG =====
+
+def show_signup_verification_dialog(page, db, temp_user_data, on_success_callback, on_cancel_callback=None):
+    """Show email verification dialog for signup
+    
+    Args:
+        page: Flet page object
+        db: Database session
+        temp_user_data: Dict with {full_name, email, phone, password}
+        on_success_callback: Function to call after successful account creation
+        on_cancel_callback: Optional function to reset signup UI
+    """
+    
+    # Single input for 6-digit code
+    verification_code_input = ft.TextField(
+        label="Enter 6-digit code",
+        label_style=ft.TextStyle(color="white"),
+        color="white",
+        width=300,
+        max_length=6,
+        text_align=ft.TextAlign.CENTER,
+        keyboard_type=ft.KeyboardType.NUMBER,
+        border_radius=12,
+        filled=True,
+        bgcolor="transparent",
+        border_color="white",
+        focused_border_color="orange",
+        text_size=16,
+        height=55
+    )
+    
+    dialog_message = ft.Text(
+        f"Code sent to {temp_user_data['email']}",
+        size=12,
+        color="white",
+        text_align=ft.TextAlign.CENTER
+    )
+    
+    def verify_code_action(ev):
+        """Verify code and create account"""
+        if not verification_code_input.value or len(verification_code_input.value) != 6:
+            dialog_message.value = "❌ Please enter the 6-digit code"
+            dialog_message.color = "red"
+            page.update()
+            return
+        
+        if verify_code(temp_user_data["email"], verification_code_input.value):
+            # Code is valid - create account
+            new_user = create_user(
+                db,
+                temp_user_data["full_name"],
+                temp_user_data["email"],
+                temp_user_data["phone"],
+                temp_user_data["password"]
+            )
+            
+            if new_user:
+                # ✅ Close dialog and call success callback
+                close_verification_dialog()
+                on_success_callback()
+            else:
+                dialog_message.value = "❌ Error creating account"
+                dialog_message.color = "red"
+                page.update()
+        else:
+            dialog_message.value = "❌ Invalid or expired code"
+            dialog_message.color = "red"
+            page.update()
+    
+    def resend_code_action(ev):
+        """Resend verification code"""
+        dialog_message.value = "Resending..."
+        dialog_message.color = "white"
+        page.update()
+        
+        def resend_thread():
+            if resend_verification_code(temp_user_data["email"]):
+                dialog_message.value = f"Code sent to {temp_user_data['email']}"
+                dialog_message.color = "white"
+            else:
+                dialog_message.value = "❌ Failed to send code"
+                dialog_message.color = "red"
+            page.update()
+        
+        thread = threading.Thread(target=resend_thread, daemon=True)
+        thread.start()
+    
+    def cancel_verification(ev):
+        """Cancel verification and return to signup form"""
+        close_verification_dialog()
+        # ✅ Call cancel callback to reset signup UI
+        if on_cancel_callback:
+            on_cancel_callback()
+    
+    def close_verification_dialog():
+        """Close the verification dialog"""
+        try:
+            verification_dialog.open = False
+            page.update()
+        except Exception as ex:
+            print(f"Close verification dialog error: {ex}")
+    
+    # Resend button (centered text button)
+    resend_btn = ft.Container(
+        content=ft.TextButton(
+            "Resend Code",
+            on_click=resend_code_action
+        ),
+        alignment=ft.alignment.center
+    )
+    
+    # Verification Dialog (EXACTLY MATCHING LOGIN 2FA)
+    verification_dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Container(
+            content=ft.Text(
+                "Verify Your Email",
+                size=16,
+                weight="bold",
+                color="white",
+                text_align=ft.TextAlign.CENTER
+            ),
+            alignment=ft.alignment.center
+        ),
+        title_padding=ft.padding.only(left=20, right=20, top=20, bottom=0),
+        content=ft.Container(
+            content=ft.Column([
+                ft.Text(
+                    "Enter the code sent to your email",
+                    size=12,
+                    color="white",
+                    text_align=ft.TextAlign.CENTER
+                ),
+                ft.Container(height=10),
+                verification_code_input,
+                ft.Container(height=10),
+                resend_btn,
+                ft.Container(height=5),
+                dialog_message
+            ], tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
+            width=300,
+            padding=ft.padding.only(left=20, right=20, top=0, bottom=0)
+        ),
+        actions=[
+            ft.TextButton("Cancel", on_click=cancel_verification),
+            ft.ElevatedButton(
+                "Verify",
+                on_click=verify_code_action,
+                style=ft.ButtonStyle(bgcolor="green", color="white")
+            )
+        ],
+        actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0)
+    )
+    
+    # ✅ EXACTLY MATCHING LOGIN (no page.dialog assignment)
+    page.overlay.append(verification_dialog)
+    verification_dialog.open = True
     page.update()

@@ -4,7 +4,7 @@ from core.db import SessionLocal
 from core.session_manager import start_session
 from core.auth_service import authenticate_user, create_user_from_google, hash_password
 from core.google_auth import get_google_user_info
-from core.two_fa_service import send_2fa_code, verify_2fa_code, verify_backup_code
+from core.two_fa_ui_service import show_login_2fa_dialog
 from core.email_service import generate_verification_code, send_password_reset_email, store_password_reset_code, verify_password_reset_code, resend_password_reset_code
 from core.lockout_service import (
     record_failed_attempt,
@@ -85,43 +85,6 @@ def login_view(page: ft.Page):
         bgcolor="#FFF3E0",
         margin=ft.margin.only(bottom=10)
     )
-    
-    # ===== 2FA FIELDS =====
-    two_fa_code_input = ft.TextField(
-        label="Enter 6-digit 2FA code",
-        label_style=ft.TextStyle(color="#000000"),
-        color="#000000",
-        width=MOBILE_WIDTH,
-        max_length=6,
-        text_align=ft.TextAlign.CENTER,
-        keyboard_type=ft.KeyboardType.NUMBER,
-        border_radius=12,
-        filled=True,
-        bgcolor=LIGHT_GRAY,
-        border_color="transparent",
-        focused_border_color=ORANGE,
-        text_size=18,
-        height=55
-    )
-    
-    backup_code_input = ft.TextField(
-        label="Or enter backup code (XXXX-XXXX)",
-        width=MOBILE_WIDTH,
-        max_length=9,
-        text_align=ft.TextAlign.CENTER,
-        border_radius=12,
-        filled=True,
-        bgcolor=LIGHT_GRAY,
-        border_color="transparent",
-        focused_border_color=ORANGE,
-        text_size=14,
-        height=55
-    )
-    
-    two_fa_message = ft.Text(value="", color="red", size=12)
-    
-    # Store temp user data
-    temp_user = None
     
     # Countdown thread control
     countdown_active = {"value": False}
@@ -211,10 +174,35 @@ def login_view(page: ft.Page):
         
         return False
 
+    # ===== COMPLETE LOGIN =====
+    def complete_login(user):
+        """Complete login after authentication (callback for 2FA)"""
+        page.session.set("user", {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role
+        })
+
+        try:
+            start_session(user.email)
+        except Exception as ex:
+            print("start_session error:", ex)
+
+        page.snack_bar = ft.SnackBar(
+            ft.Text(f"✅ Welcome, {user.full_name}!"),
+            bgcolor=ft.Colors.GREEN
+        )
+        page.snack_bar.open = True
+        page.update()
+
+        if user.role == "admin":
+            page.go("/admin")
+        else:
+            page.go("/home")
+
     # ===== LOGIN HANDLER =====
     def handle_login(e):
-        nonlocal temp_user
-        
         if check_lockout_status():
             return
         
@@ -254,16 +242,24 @@ def login_view(page: ft.Page):
 
             record_successful_login(db, email.value.strip())
             
+            # ✅ CHANGE: Use show_login_2fa_dialog from two_fa_ui_service
             if user.two_fa_enabled:
-                temp_user = user
                 message.value = "📧 Sending 2FA code..."
                 message.color = "blue"
                 login_btn.disabled = True
                 page.update()
                 
                 def send_2fa_thread():
-                    if send_2fa_code(db, user.email):
-                        show_2fa_verification()
+                    from core.two_fa_service import send_2fa_code
+                    if send_2fa_code(user.email):
+                        # ✅ ADDED: Define cancel callback to reset UI
+                        def on_cancel():
+                            message.value = ""
+                            login_btn.disabled = False
+                            page.update()
+                        
+                        # ✅ CHANGED: Pass cancel callback
+                        show_login_2fa_dialog(page, db, user, complete_login, on_cancel)
                     else:
                         message.value = "❌ Failed to send 2FA code"
                         message.color = "red"
@@ -281,151 +277,6 @@ def login_view(page: ft.Page):
             message.value = "❌ An error occurred during login."
             message.color = "red"
             page.update()
-
-    # ===== 2FA VERIFICATION =====
-    def show_2fa_verification():
-        """Show 2FA code input screen"""
-        two_fa_message.value = f"✅ Code sent to {temp_user.email}"
-        two_fa_message.color = "green"
-        
-        brand_logo_2fa = ft.Image(
-            src="assets/Brand.png",
-            width=250,
-            height=100,
-            fit=ft.ImageFit.CONTAIN
-        )
-        
-        verify_btn = ft.Container(
-            content=ft.Text("Verify & Sign In", size=16, weight="bold", color=WHITE),
-            width=MOBILE_WIDTH,
-            height=50,
-            bgcolor=ORANGE,
-            border_radius=25,
-            alignment=ft.alignment.center,
-            on_click=verify_2fa,
-            ink=True,
-            animate=ft.Animation(200, "easeOut")
-        )
-        
-        resend_btn = ft.Container(
-            content=ft.Text("Resend Code", size=12, color=ORANGE, weight="bold"),
-            on_click=resend_2fa_code,
-            ink=True
-        )
-        
-        back_btn = ft.TextButton(
-            "← Back to Login",
-            on_click=lambda e: show_login_form()
-        )
-
-        page.clean()
-        page.add(
-            ft.Container(
-                content=ft.Column([
-                    ft.Container(height=30),
-                    brand_logo_2fa,
-                    ft.Container(height=15),
-                    ft.Text("🔐 Two-Factor Authentication", size=22, weight="bold"),
-                    ft.Text("Enter the code sent to your email", size=12, color=DARK_GRAY),
-                    ft.Container(height=15),
-                    two_fa_code_input,
-                    ft.Container(height=8),
-                    ft.Text("OR", size=12, color=DARK_GRAY),
-                    ft.Container(height=8),
-                    backup_code_input,
-                    ft.Container(height=15),
-                    verify_btn,
-                    ft.Container(height=8),
-                    resend_btn,
-                    ft.Container(height=8),
-                    two_fa_message,
-                    ft.Container(height=8),
-                    back_btn
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                scroll=ft.ScrollMode.AUTO),
-                width=400,
-                height=700,
-                padding=ft.padding.symmetric(horizontal=25),
-                bgcolor=WHITE
-            )
-        )
-        page.update()
-
-    def verify_2fa(e):
-        """Verify 2FA code or backup code"""
-        code = two_fa_code_input.value
-        backup = backup_code_input.value
-        
-        if not code and not backup:
-            two_fa_message.value = "❌ Please enter a code"
-            two_fa_message.color = "red"
-            page.update()
-            return
-
-        if code and verify_2fa_code(db, temp_user.email, code):
-            complete_login(temp_user)
-            return
-        
-        if backup:
-            from models.user import User
-            user = db.query(User).filter(User.id == temp_user.id).first()
-            if verify_backup_code(db, user, backup):
-                db.commit()
-                two_fa_message.value = "⚠️ Backup code used. Generate new codes in your profile."
-                two_fa_message.color = "orange"
-                page.update()
-                complete_login(temp_user)
-                return
-        
-        two_fa_message.value = "❌ Invalid code. Please try again."
-        two_fa_message.color = "red"
-        page.update()
-
-    def resend_2fa_code(e):
-        """Resend 2FA code"""
-        two_fa_message.value = "📧 Resending code..."
-        two_fa_message.color = "blue"
-        page.update()
-
-        def resend_thread():
-            if send_2fa_code(db, temp_user.email):
-                two_fa_message.value = "✅ New code sent"
-                two_fa_message.color = "green"
-            else:
-                two_fa_message.value = "❌ Failed to send code"
-                two_fa_message.color = "red"
-            page.update()
-        
-        thread = threading.Thread(target=resend_thread, daemon=True)
-        thread.start()
-
-    # ===== COMPLETE LOGIN =====
-    def complete_login(user):
-        """Complete login after authentication"""
-        page.session.set("user", {
-            "id": user.id,
-            "email": user.email,
-            "full_name": user.full_name,
-            "role": user.role
-        })
-
-        try:
-            start_session(user.email)
-        except Exception as ex:
-            print("start_session error:", ex)
-
-        page.snack_bar = ft.SnackBar(
-            ft.Text(f"✅ Welcome, {user.full_name}!"),
-            bgcolor=ft.Colors.GREEN
-        )
-        page.snack_bar.open = True
-        page.update()
-
-        if user.role == "admin":
-            page.go("/admin")
-        else:
-            page.go("/home")
 
     # ===== GOOGLE LOGIN =====
     def handle_google_login(e):

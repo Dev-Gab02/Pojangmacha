@@ -1,10 +1,11 @@
 import flet as ft
 import re
 from core.db import SessionLocal
-from core.auth_service import create_user, create_user_from_google
+from core.auth_service import create_user_from_google
 from core.session_manager import start_session
 from core.google_auth import get_google_user_info
-from core.email_service import generate_verification_code, send_verification_email, store_verification_code, verify_code, resend_verification_code
+from core.email_service import generate_verification_code, send_verification_email, store_verification_code
+from core.two_fa_ui_service import show_signup_verification_dialog
 import threading
 
 # ===== BRAND COLORS (SAME AS LOGIN) =====
@@ -110,25 +111,6 @@ def signup_view(page: ft.Page):
     )
 
     message = ft.Text(value="", color="red", size=12, text_align=ft.TextAlign.CENTER)
-
-    # Step 2: Email verification
-    verification_code_input = ft.TextField(
-        label="Enter 6-digit code",
-        label_style=ft.TextStyle(color="#000000"),
-        color="#000000",
-        width=MOBILE_WIDTH,
-        max_length=6,
-        text_align=ft.TextAlign.CENTER,
-        keyboard_type=ft.KeyboardType.NUMBER,
-        border_radius=12,
-        filled=True,
-        bgcolor=LIGHT_GRAY,
-        border_color="transparent",
-        focused_border_color=ORANGE,
-        text_size=18,
-        height=55
-    )
-    verification_message = ft.Text(value="", color="red", size=12)
     
     # Store user data temporarily
     temp_user_data = {}
@@ -138,8 +120,9 @@ def signup_view(page: ft.Page):
         pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         return re.match(pattern, email_str) is not None
 
+    # ===== SEND VERIFICATION CODE =====
     def send_verification(e):
-        """Send verification code to email"""
+        """Validate form and send verification code"""
         if not all([full_name.value, email.value, phone.value, password.value, confirm_password.value]):
             message.value = "❌ All fields are required!"
             message.color = "red"
@@ -192,9 +175,21 @@ def signup_view(page: ft.Page):
             
             if success:
                 store_verification_code(email.value, code)
-                show_verification_step()
+                
+                # ✅ CHANGE: Define cancel callback to reset UI
+                def on_cancel():
+                    message.value = ""
+                    signup_btn.disabled = False
+                    page.update()
+                
+                # ✅ CHANGE: Define success callback to redirect
+                def on_success():
+                    page.go("/login")
+                
+                # ✅ CHANGE: Use show_signup_verification_dialog from two_fa_ui_service
+                show_signup_verification_dialog(page, db, temp_user_data, on_success, on_cancel)
             else:
-                message.value = "❌ Failed to send verification email. Please check your email and try again."
+                message.value = "❌ Failed to send verification email"
                 message.color = "red"
                 signup_btn.disabled = False
                 page.update()
@@ -202,167 +197,7 @@ def signup_view(page: ft.Page):
         thread = threading.Thread(target=send_email_thread, daemon=True)
         thread.start()
 
-    def show_verification_step():
-        """Show email verification UI"""
-        verification_message.value = f"✅ Verification code sent to {temp_user_data['email']}"
-        verification_message.color = "green"
-        
-        brand_logo_verify = ft.Image(
-            src="assets/Brand.png",
-            width=300,
-            height=50,
-            fit=ft.ImageFit.CONTAIN
-        )
-        
-        verify_btn = ft.Container(
-            content=ft.Text("Verify & Create Account", size=16, weight="bold", color=WHITE),
-            width=MOBILE_WIDTH,
-            height=50,
-            bgcolor=BUTTON_COLOR,
-            border_radius=25,
-            alignment=ft.alignment.center,
-            on_click=verify_and_create_account,
-            ink=True,
-            animate=ft.Animation(200, "easeOut")
-        )
-        
-        resend_btn = ft.Container(
-            content=ft.Text("Resend Code", size=12, color=ORANGE, weight="bold"),
-            on_click=resend_code,
-            ink=True
-        )
-        
-        back_btn = ft.TextButton(
-            "← Back to Form",
-            on_click=lambda e: show_signup_form()
-        )
-
-        page.clean()
-        page.add(
-            ft.Container(
-                content=ft.Column([
-                    ft.Container(height=30),
-                    brand_logo_verify,
-                    ft.Container(height=15),
-                    ft.Text("📧 Verify Your Email", size=22, weight="bold", color="#000000"),
-                    ft.Text("Enter the code sent to your email", size=12, color=DARK_GRAY),
-                    ft.Container(height=15),
-                    verification_code_input,
-                    ft.Container(height=15),
-                    verify_btn,
-                    ft.Container(height=8),
-                    resend_btn,
-                    ft.Container(height=8),
-                    verification_message,
-                    ft.Container(height=8),
-                    back_btn
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                scroll=ft.ScrollMode.AUTO),
-                width=400,
-                height=700,
-                padding=ft.padding.symmetric(horizontal=25),
-                bgcolor=WHITE
-            )
-        )
-        page.update()
-
-    def verify_and_create_account(e):
-        """Verify code and create user account"""
-        if not verification_code_input.value or len(verification_code_input.value) != 6:
-            verification_message.value = "❌ Please enter the 6-digit code"
-            verification_message.color = "red"
-            page.update()
-            return
-
-        if verify_code(temp_user_data["email"], verification_code_input.value):
-            # Code is valid - create account
-            new_user = create_user(
-                db,
-                temp_user_data["full_name"],
-                temp_user_data["email"],
-                temp_user_data["phone"],
-                temp_user_data["password"]
-            )
-            
-            if new_user:
-                page.snack_bar = ft.SnackBar(
-                    ft.Text("✅ Account created successfully! Please log in."),
-                    bgcolor=ft.Colors.GREEN
-                )
-                page.snack_bar.open = True
-                page.update()
-                page.go("/login")
-            else:
-                verification_message.value = "❌ Error creating account. Please try again."
-                verification_message.color = "red"
-                page.update()
-        else:
-            verification_message.value = "❌ Invalid or expired code. Please try again."
-            verification_message.color = "red"
-            page.update()
-
-    def resend_code(e):
-        """Resend verification code"""
-        verification_message.value = "📧 Resending code..."
-        verification_message.color = "blue"
-        page.update()
-
-        def resend_thread():
-            if resend_verification_code(temp_user_data["email"]):
-                verification_message.value = "✅ New code sent to your email"
-                verification_message.color = "green"
-            else:
-                verification_message.value = "❌ Failed to send code. Please try again."
-                verification_message.color = "red"
-            page.update()
-        
-        thread = threading.Thread(target=resend_thread, daemon=True)
-        thread.start()
-
-    def show_signup_form():
-        """Show the signup form"""
-        page.clean()
-        page.add(
-            ft.Container(
-                content=ft.Column([
-                    ft.Container(height=8),
-                    welcome_text,
-                    ft.Container(height=8),
-                    brand_logo,
-                    subtitle_text,
-                    ft.Container(height=20),
-                    full_name,
-                    ft.Container(height=8),
-                    email,
-                    ft.Container(height=8),
-                    phone,
-                    ft.Container(height=8),
-                    password,
-                    ft.Container(height=8),
-                    confirm_password,
-                    ft.Container(height=8),
-                    signup_btn,
-                    ft.Container(height=2),
-                    message,
-                    ft.Container(height=10),
-                    divider_row,
-                    ft.Container(height=15),
-                    google_btn,
-                    ft.Container(height=8),
-                    signin_row
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                scroll=ft.ScrollMode.AUTO,
-                spacing=0),
-                width=400,
-                height=700,
-                padding=ft.padding.symmetric(horizontal=25),
-                bgcolor=WHITE
-            )
-        )
-        page.update()
-
+    # ===== GOOGLE SIGNUP =====
     def handle_google_signup(e):
         """Handle Google sign-up with real OAuth"""
         message.value = "🔄 Opening Google Sign-In..."
@@ -388,6 +223,7 @@ def signup_view(page: ft.Page):
                     picture=user_info.get('picture')
                 )
                 
+                # ✅ Google OAuth still auto-logs in (since it's OAuth-based)
                 page.session.set("user", {
                     "id": user.id,
                     "email": user.email,
@@ -492,4 +328,44 @@ def signup_view(page: ft.Page):
         )
     ], spacing=5, alignment=ft.MainAxisAlignment.CENTER)
 
-    show_signup_form()
+    # ===== MAIN SIGNUP FORM =====
+    page.clean()
+    page.add(
+        ft.Container(
+            content=ft.Column([
+                ft.Container(height=8),
+                welcome_text,
+                ft.Container(height=8),
+                brand_logo,
+                subtitle_text,
+                ft.Container(height=20),
+                full_name,
+                ft.Container(height=8),
+                email,
+                ft.Container(height=8),
+                phone,
+                ft.Container(height=8),
+                password,
+                ft.Container(height=8),
+                confirm_password,
+                ft.Container(height=8),
+                signup_btn,
+                ft.Container(height=2),
+                message,
+                ft.Container(height=10),
+                divider_row,
+                ft.Container(height=15),
+                google_btn,
+                ft.Container(height=8),
+                signin_row
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            scroll=ft.ScrollMode.AUTO,
+            spacing=0),
+            width=400,
+            height=700,
+            padding=ft.padding.symmetric(horizontal=25),
+            bgcolor=WHITE
+        )
+    )
+    page.update()

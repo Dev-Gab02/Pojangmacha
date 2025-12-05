@@ -41,8 +41,8 @@ def send_verification_email(to_email: str, verification_code: str) -> bool:
         html = f"""
         <html>
             <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;">
-                <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                    <h2 style="color: #333; text-align: center;">Welcome to {APP_NAME}! 🎉</h2>
+                <div style="text-align: center; max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h2 style="color: #333; text-align: center;">Welcome to {APP_NAME}!</h2>
                     <p style="color: #666; font-size: 16px;">Thank you for signing up! Please verify your email address to complete your registration.</p>
                     
                     <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; margin: 30px 0;">
