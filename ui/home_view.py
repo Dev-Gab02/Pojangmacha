@@ -225,7 +225,7 @@ def home_view(page: ft.Page):
                 footer
             ], expand=True, spacing=0),
             width=400,
-            height=700,
+            expand=True,
             padding=0,
             bgcolor="white"
         )

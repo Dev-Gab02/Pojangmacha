@@ -23,10 +23,7 @@ def admin_view(page: ft.Page):
         page.go("/home")
         return
 
-    # ✅ Detect layout mode based on window width
     is_desktop = page.window.width > BREAKPOINT
-    
-    print(f"📐 Admin view - Width: {page.window.width}px, Mode: {'Desktop' if is_desktop else 'Mobile'}")
 
     # ===================== BUILD TABS =====================
     
@@ -39,7 +36,6 @@ def admin_view(page: ft.Page):
             build_users_tab(page, db, user_data, is_desktop)
         ],
         expand=True,
-        # ✅ Custom tab styling
         label_color="#E9190A",  # Active tab text & icon color (red)
         unselected_label_color="black",  # Inactive tab text & icon color (black)
         indicator_color="#E9190A",  # Active tab indicator line (red)
@@ -60,7 +56,6 @@ def admin_view(page: ft.Page):
     page.add(
         ft.Container(
             content=ft.Column([
-                # ✅ Header - WHITE background (NO gradient)
                 ft.Container(
                     content=ft.Column([
                         ft.Container(
@@ -89,7 +84,6 @@ def admin_view(page: ft.Page):
                     padding=0
                 ),
                 
-                # ✅ Tabs with GRADIENT background (entire remaining area)
                 ft.Container(
                     content=tabs,
                     expand=True,
@@ -100,9 +94,8 @@ def admin_view(page: ft.Page):
                     )
                 )
             ], expand=True, spacing=0),
-            # ✅ Responsive container size
             width=page.window.width if is_desktop else 400,
-            height=page.window.height if is_desktop else 700,
+            expand=True,
             padding=0
         )
     )

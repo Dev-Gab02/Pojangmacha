@@ -41,7 +41,6 @@ DESKTOP_MIN_HEIGHT = 700
 BREAKPOINT = 800
 
 def main(page: ft.Page):
-    # ✅ DEFAULT: Mobile size (for login/signup)
     page.window.width = MOBILE_WIDTH
     page.window.height = MOBILE_HEIGHT
     page.window.resizable = False
@@ -61,10 +60,8 @@ def main(page: ft.Page):
     warning_dialog_shown = {"value": False}
     last_activity_logged = {"time": time.time()}
 
-    # ✅ Store current layout mode
     layout_mode = {"current": "mobile"}
 
-    # ✅ WINDOW RESIZE HANDLER for admin pages
     def handle_window_resize(e):
         """Detect window resize and trigger layout update for admin pages"""
         current_user = page.session.get("user")
@@ -83,14 +80,13 @@ def main(page: ft.Page):
                 
                 # Only reload if mode changed
                 if old_mode != layout_mode["current"]:
-                    print(f"🔄 Layout mode changed: {old_mode} → {layout_mode['current']}")
+                    print(f"Layout mode changed: {old_mode} → {layout_mode['current']}")
                     # Reload current view to apply new layout
                     if page.route == "/admin":
                         admin_view(page)
                     elif page.route == "/analytics":
                         analytics_view(page)
 
-    # ✅ Attach resize handler
     page.on_resized = handle_window_resize
 
     def current_email():
@@ -125,28 +121,28 @@ def main(page: ft.Page):
                 if not result:
                     print(f"⚠️ Failed to refresh session for {email}")
             except Exception as ex:
-                print(f"❌ refresh_session error: {ex}")
+                print(f"refresh_session error: {ex}")
 
     try:
         if hasattr(page, "on_keyboard_event"):
             old_keyboard_handler = page.on_keyboard_event
             page.on_keyboard_event = lambda ev: (on_user_activity(ev), old_keyboard_handler(ev) if old_keyboard_handler else None)
     except Exception as ex:
-        print(f"⚠️ Keyboard handler error: {ex}")
+        print(f"Keyboard handler error: {ex}")
 
     try:
         if hasattr(page, "on_pointer_move"):
             old_pointer_move = page.on_pointer_move
             page.on_pointer_move = lambda ev: (on_user_activity(ev), old_pointer_move(ev) if old_pointer_move else None)
     except Exception as ex:
-        print(f"⚠️ Pointer move handler error: {ex}")
+        print(f"Pointer move handler error: {ex}")
 
     try:
         if hasattr(page, "on_pointer_down"):
             old_pointer_down = page.on_pointer_down
             page.on_pointer_down = lambda ev: (on_user_activity(ev), old_pointer_down(ev) if old_pointer_down else None)
     except Exception as ex:
-        print(f"⚠️ Pointer click handler error: {ex}")
+        print(f"Pointer click handler error: {ex}")
 
     original_update = page.update
     
@@ -228,7 +224,7 @@ def main(page: ft.Page):
             warning_dlg.open = True
             original_update()
         except Exception as ex:
-            print(f"❌ Error showing warning dialog: {ex}")
+            print(f"Error showing warning dialog: {ex}")
             warning_dialog_shown["value"] = False
             return
         
@@ -266,7 +262,6 @@ def main(page: ft.Page):
         close_warning_dialog()
         page.session.set("user", None)
         
-        # ✅ Reset to mobile size on logout
         page.window.width = MOBILE_WIDTH
         page.window.height = MOBILE_HEIGHT
         page.window.resizable = False
@@ -338,7 +333,6 @@ def main(page: ft.Page):
         page.clean()
         current_user = page.session.get("user")
 
-        # ✅ Configure window based on route and role
         if page.route in ["/login", "/signup", "/logout", "/", "/reset_password"]:
             # Auth pages: always mobile, not resizable
             page.window.width = MOBILE_WIDTH
@@ -349,7 +343,6 @@ def main(page: ft.Page):
             user_role = current_user.get("role", "customer")
             
             if user_role == "admin" and page.route in ["/admin", "/analytics"]:
-                # ✅ Admin pages: Allow resizing, keep current size
                 page.window.resizable = True
                 
                 # Don't force size change - preserve current dimensions
@@ -419,7 +412,6 @@ def main(page: ft.Page):
         elif page.route == "/admin":
             admin_view(page)
         elif page.route == "/analytics":
-            # ✅ Analytics - Don't change window size, keep current
             analytics_view(page)
         elif page.route == "/orders":
             order_history_view(page)

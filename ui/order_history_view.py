@@ -36,7 +36,7 @@ def order_history_widget(page, on_nav, update_cart_badge):
         db.commit()
         update_cart_badge()
         page.snack_bar = ft.SnackBar(
-            ft.Text(f"✅ Added {added_count} items to cart!"),
+            ft.Text(f"Added {added_count} items to cart!"),
             bgcolor="green700",
             action="View Cart",
             on_action=lambda e: on_nav("cart")

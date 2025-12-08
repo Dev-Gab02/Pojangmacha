@@ -25,32 +25,24 @@ def analytics_view(page: ft.Page):
         page.go("/home")
         return
     
-    # ✅ DETECT DESKTOP MODE - USE ACTUAL WINDOW DIMENSIONS
     BREAKPOINT = 800
     current_width = page.window.width or 400
     is_desktop = current_width >= BREAKPOINT
     
-    # ✅ RESPONSIVE DIMENSIONS - Preserve current window size
     container_width = current_width if is_desktop else 400
     container_height = page.window.height or 700
     
-    print(f"📊 Analytics - Width: {container_width}px, Height: {container_height}px, Mode: {'Desktop' if is_desktop else 'Mobile'}")
-    
-    # ✅ Track if component is still active (moved here - before handle_back)
     is_active = {"value": True}
     
-    # ✅ OPTIMIZED BACK NAVIGATION - Stop background thread immediately
     def handle_back(e):
         """Fast navigation back to admin - stop all operations"""
         try:
-            # ✅ STOP BACKGROUND THREAD IMMEDIATELY
             is_active["value"] = False
             
             # Close any dialogs
             if hasattr(page, 'dialog') and page.dialog:
                 page.dialog.open = False
             
-            # ✅ SHOW LOADING SCREEN BEFORE NAVIGATION
             main_container.content = ft.Column([
                 ft.Container(
                     content=ft.Column([
@@ -77,10 +69,8 @@ def analytics_view(page: ft.Page):
             print(f"❌ Back navigation error: {ex}")
             page.go("/admin")
     
-    # ✅ CREATE MAIN CONTAINER (will be updated, not replaced)
     main_container = ft.Container(
         content=ft.Column([
-            # ✅ LOADING SCREEN HEADER - WHITE WITH DIVIDER
             ft.Column([
                 ft.Container(
                     content=ft.Row([
@@ -112,16 +102,14 @@ def analytics_view(page: ft.Page):
             )
         ], expand=True, spacing=0),
         width=container_width,
-        height=container_height,
+        expand=True,
         padding=0
     )
     
-    # ✅ SHOW LOADING SCREEN FIRST
     page.clean()
     page.add(main_container)
     page.update()
     
-    # ✅ LOAD DATA IN BACKGROUND THREAD
     def load_analytics():
         db = SessionLocal()
         
@@ -129,7 +117,6 @@ def analytics_view(page: ft.Page):
             # Small delay to ensure loading screen is visible
             time.sleep(0.2)
             
-            # ✅ Check if user navigated away
             if not is_active["value"]:
                 print("⏹️ Analytics loading cancelled - user navigated away")
                 db.close()
@@ -138,7 +125,6 @@ def analytics_view(page: ft.Page):
             # Get dashboard data
             summary = get_dashboard_summary(db)
             
-            # ✅ Check again before building charts
             if not is_active["value"]:
                 print("⏹️ Analytics cancelled before chart creation")
                 db.close()
@@ -385,7 +371,6 @@ def analytics_view(page: ft.Page):
                     padding=5
                 )
             
-            # --- ✅ EQUAL SIZE SUMMARY CARDS ---
             if is_desktop:
                 summary_cards_container = ft.Row([
                     ft.Container(
@@ -485,13 +470,11 @@ def analytics_view(page: ft.Page):
             
             sales_chart_container.content = create_sales_trend_chart("daily")
             
-            # ✅ Check one more time before building layout
             if not is_active["value"]:
                 print("⏹️ Analytics cancelled before layout creation")
                 db.close()
                 return
             
-            # ✅ DESKTOP: 2-column grid | MOBILE: Single column
             if is_desktop:
                 charts_content = ft.Column([
                     ft.Container(content=summary_cards_container, padding=ft.padding.symmetric(horizontal=20, vertical=15)),
@@ -551,13 +534,11 @@ def analytics_view(page: ft.Page):
                     ft.Container(height=20)
                 ], spacing=0, scroll=ft.ScrollMode.AUTO)
             
-            # ✅ Final check before updating UI
             if not is_active["value"]:
                 print("⏹️ Analytics cancelled before final update")
                 db.close()
                 return
             
-            # ✅ UPDATE MAIN CONTAINER CONTENT
             main_container.content = ft.Column([
                 ft.Column([
                     ft.Container(
@@ -581,11 +562,11 @@ def analytics_view(page: ft.Page):
             main_container.height = container_height
             
             page.update()
-            print("✅ Analytics loaded successfully")
+            print("Analytics loaded successfully")
             
         except Exception as ex:
             if not is_active["value"]:
-                print("⏹️ Analytics error but already cancelled")
+                print("Analytics error but already cancelled")
                 db.close()
                 return
                 
@@ -612,11 +593,10 @@ def analytics_view(page: ft.Page):
             ], expand=True, spacing=0)
             
             page.update()
-            print(f"❌ Analytics loading error: {ex}")
+            print(f"Analytics loading error: {ex}")
         finally:
             db.close()
-            print("🔒 Database connection closed")
+            print("Database connection closed")
     
-    # ✅ START BACKGROUND THREAD
     thread = threading.Thread(target=load_analytics, daemon=True)
     thread.start()

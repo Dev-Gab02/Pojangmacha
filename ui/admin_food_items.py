@@ -36,7 +36,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
         - 3-dot menu for Edit/Delete actions
         """
         
-        # ✅ UNIFIED HORIZONTAL LAYOUT (same for desktop & mobile)
+        # UNIFIED HORIZONTAL LAYOUT (same for desktop & mobile)
         return ft.Card(
             content=ft.Container(
                 content=ft.Row([
@@ -62,7 +62,6 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     
                     # Content (center - expandable)
                     ft.Column([
-                        # ✅ Row 1: Name + 3-dot menu (SPACE_BETWEEN alignment)
                         ft.Row([
                             ft.Text(item.name, weight="bold", size=16, color="black", expand=True),
                             ft.PopupMenuButton(
@@ -93,7 +92,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                         # Row 3: Price
                         ft.Text(f"₱{item.price:.2f}", color="green", weight="bold"),
                     ], spacing=5, expand=True),
-                ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER),  # ✅ Center alignment
+                ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 padding=10,
                 bgcolor="white",
                 border_radius=12
@@ -102,17 +101,15 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
     
     # ===================== GRID/LIST CONTAINERS =====================
     
-    # ✅ Desktop: GridView with 3 columns (horizontal cards)
+    # Desktop: GridView with 3 columns (horizontal cards)
     food_grid = ft.GridView(
         runs_count=DESKTOP_COLUMNS,  # 3 columns
-        max_extent=500,  # ✅ Responsive: allows cards to expand up to 500px
-        child_aspect_ratio=4.0,  # ✅ Width/Height = 4:1 (matches mobile proportions)
+        max_extent=500,  # Responsive: allows cards to expand up to 500px
+        child_aspect_ratio=4.0,
         spacing=GRID_SPACING,
         run_spacing=GRID_RUN_SPACING,
         expand=True
     )
-
-    # ✅ Mobile: Column (single column list) - UNCHANGED
     food_list = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, expand=True)
     
     # ===================== LOAD DATA =====================
@@ -153,7 +150,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
             bgcolor="grey200",
             border_radius=8,
             alignment=ft.alignment.center,
-            border=ft.border.all(1, "grey300")  # ✅ Add border
+            border=ft.border.all(1, "black")
         )
 
         def on_file_pick(e: ft.FilePickerResultEvent):
@@ -177,10 +174,9 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                         border_radius=8
                     )
                     
-                    # ✅ REMOVED success message
                     page.update()
                 except Exception as ex:
-                    message.value = f"❌ Error: {ex}"
+                    message.value = f"Error: {ex}"
                     message.color = "red"
                     page.update()
 
@@ -190,7 +186,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
 
         def save_food(e):
             if not all([name_field.value, price_field.value, category_dropdown.value]):
-                message.value = "❌ Please fill all required fields"
+                message.value = "Please fill all required fields"
                 message.color = "red"
                 page.update()
                 return
@@ -212,10 +208,10 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 dialog.open = False
                 page.update()
                 load_food_items()
-                page.snack_bar = ft.SnackBar(ft.Text(f"✅ {new_item.name} added successfully!"), bgcolor=ft.Colors.GREEN, open=True)
+                page.snack_bar = ft.SnackBar(ft.Text(f"{new_item.name} added successfully!"), bgcolor=ft.Colors.GREEN, open=True)
                 page.update()
             except Exception as ex:
-                message.value = f"❌ Error: {ex}"
+                message.value = f"Error: {ex}"
                 message.color = "red"
                 page.update()
 
@@ -247,14 +243,14 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                             allow_multiple=False
                         ),
                         width=300,
-                        bgcolor="#FEB23F",  # ✅ Orange button
+                        bgcolor="#FEB23F", 
                         color="white"
                     ),
                     message
                 ], tight=True, scroll=ft.ScrollMode.AUTO, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                width=320,  # ✅ Fixed width on container
-                height=520,
-                alignment=ft.alignment.top_center  # ✅ Center content
+                width=320, 
+                height=470,
+                alignment=ft.alignment.top_center 
             ),
             actions=[
                 ft.TextButton("Cancel", on_click=lambda e: close_dialog(page, dialog)),
@@ -293,7 +289,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 width=300,
                 height=120,
                 border_radius=8,
-                border=ft.border.all(1, "grey300")  # ✅ Changed to grey300
+                border=ft.border.all(1, "black")  
             )
         else:
             image_preview = ft.Container(
@@ -303,7 +299,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 bgcolor="grey200",
                 border_radius=8,
                 alignment=ft.alignment.center,
-                border=ft.border.all(1, "grey300")  # ✅ Changed to grey300
+                border=ft.border.all(1, "black") 
             )
 
         def on_file_pick(e: ft.FilePickerResultEvent):
@@ -327,10 +323,10 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                         border_radius=8
                     )
                     
-                    # ✅ REMOVED success message
+                    
                     page.update()
                 except Exception as ex:
-                    message.value = f"❌ Error: {ex}"
+                    message.value = f"Error: {ex}"
                     message.color = "red"
                     page.update()
 
@@ -340,7 +336,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
 
         def update_food(e):
             if not all([name_field.value, price_field.value, category_dropdown.value]):
-                message.value = "❌ Please fill all required fields"
+                message.value = "Please fill all required fields"
                 message.color = "red"
                 page.update()
                 return
@@ -359,14 +355,13 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 dialog.open = False
                 page.update()
                 load_food_items()
-                page.snack_bar = ft.SnackBar(ft.Text(f"✅ {item.name} updated!"), bgcolor=ft.Colors.GREEN, open=True)
+                page.snack_bar = ft.SnackBar(ft.Text(f"{item.name} updated!"), bgcolor=ft.Colors.GREEN, open=True)
                 page.update()
             except Exception as ex:
-                message.value = f"❌ Error: {ex}"
+                message.value = f"Error: {ex}"
                 message.color = "red"
                 page.update()
 
-        # ✅ Truncate title to 25 characters with ellipsis
         title_text = f"Edit: {item.name[:22]}..." if len(item.name) > 22 else f"Edit: {item.name}"
         
         dialog = ft.AlertDialog(
@@ -403,9 +398,9 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     ),
                     message
                 ], tight=True, scroll=ft.ScrollMode.AUTO, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                width=320,  # ✅ Fixed width on container
-                height=540,
-                alignment=ft.alignment.top_center  # ✅ Center content
+                width=320,  
+                height=470,
+                alignment=ft.alignment.top_center 
             ),
             actions=[
                 ft.TextButton("Cancel", on_click=lambda e: close_dialog(page, dialog)),
@@ -429,7 +424,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
             dialog.open = False
             page.update()
             load_food_items()
-            page.snack_bar = ft.SnackBar(ft.Text(f"✅ {item.name} deleted"), bgcolor=ft.Colors.ORANGE, open=True)
+            page.snack_bar = ft.SnackBar(ft.Text(f"{item.name} deleted"), bgcolor=ft.Colors.ORANGE, open=True)
             page.update()
 
         dialog = ft.AlertDialog(
@@ -454,7 +449,6 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
         text="Food Items",
         icon=ft.Icons.RESTAURANT_MENU,
         content=ft.Column([
-            # ✅ Title Row - TRANSPARENT (gradient shows through)
             ft.Container(
                 content=ft.Row([
                     ft.Text("Manage Food Items", size=20, weight="bold", color='black'),
@@ -467,15 +461,14 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     )
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 padding=10
-                # ✅ No bgcolor - gradient from parent shows through
             ),
             
-            # ✅ Grid/List with TRANSPARENT background (gradient from parent)
+            
             ft.Container(
                 content=food_grid if is_desktop else food_list,
                 expand=True,
                 padding=10
-                # ✅ No gradient here - inherits from parent
+            
             )
         ], expand=True, spacing=0)
     )

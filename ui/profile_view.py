@@ -32,7 +32,6 @@ def profile_view_widget(page, on_nav):
     total_orders = len(user_orders)
     total_spent = sum(order.total_price for order in user_orders)
 
-    # ✅ FIX: Google users have NO phone number (phone is the real indicator)
     has_password_ref = {"value": bool(user.phone and user.phone.strip())}
 
     # Profile image (use placeholder if none)
@@ -59,7 +58,6 @@ def profile_view_widget(page, on_nav):
                 alignment=ft.alignment.center
             )
 
-    # ✅ Profile fields for editing - WHITE BACKGROUNDS
     full_name_field = ft.TextField(
         label="Full Name", 
         value=user.full_name, 
@@ -94,7 +92,6 @@ def profile_view_widget(page, on_nav):
     
     message = ft.Text("", color="green")
 
-    # ✅ Password change fields - WHITE BACKGROUNDS
     old_pass = ft.TextField(
         label="Current Password", 
         password=True, 
@@ -128,7 +125,6 @@ def profile_view_widget(page, on_nav):
         filled=True
     )
     
-    # Set password fields - WHITE BACKGROUNDS
     set_new_pass = ft.TextField(
         label="New Password", 
         password=True, 
@@ -174,7 +170,7 @@ def profile_view_widget(page, on_nav):
                 user.profile_picture = dest
                 db.commit()
                 page.snack_bar = ft.SnackBar(
-                    ft.Text("✅ Profile picture updated!"),
+                    ft.Text("Profile picture updated!"),
                     bgcolor=ft.Colors.GREEN
                 )
                 page.snack_bar.open = True
@@ -211,14 +207,14 @@ def profile_view_widget(page, on_nav):
             page.session.set("profile_edit_mode", False)
             
             page.snack_bar = ft.SnackBar(
-                ft.Text("✅ Profile updated successfully!"),
+                ft.Text("Profile updated successfully!"),
                 bgcolor=ft.Colors.GREEN
             )
             page.snack_bar.open = True
             build_ui()
         else:
             page.snack_bar = ft.SnackBar(
-                ft.Text(f"❌ {msg}"),
+                ft.Text(f"{msg}"),
                 bgcolor=ft.Colors.RED
             )
             page.snack_bar.open = True
@@ -242,7 +238,7 @@ def profile_view_widget(page, on_nav):
                 pass_msg.value = ""
                 
                 page.snack_bar = ft.SnackBar(
-                    ft.Text("✅ Password changed successfully!"),
+                    ft.Text("Password changed successfully!"),
                     bgcolor=ft.Colors.GREEN
                 )
                 page.snack_bar.open = True
@@ -251,7 +247,6 @@ def profile_view_widget(page, on_nav):
                 pass_msg.color = "red"
         page.update()
 
-    # ✅ Set password handler (for Google users) - SWITCHES TO CHANGE PASSWORD MODE
     def handle_set_password(e):
         if not all([set_new_pass.value, set_confirm_pass.value]):
             pass_msg.value = "All fields are required."
@@ -265,30 +260,29 @@ def profile_view_widget(page, on_nav):
         else:
             from core.auth_service import hash_password
             try:
-                # ✅ Set both password AND phone (mark as having password)
+                # Set both password AND phone (mark as having password)
                 user.password_hash = hash_password(set_new_pass.value)
                 
-                # ✅ Set phone to a placeholder to mark as "has password"
+                # Set phone to a placeholder to mark as "has password"
                 if not user.phone or not user.phone.strip():
                     user.phone = "set_via_google"  # Marker that password was set
                 
                 db.commit()
                 
-                # ✅ Clear fields and message
+                # Clear fields and message
                 set_new_pass.value = set_confirm_pass.value = ""
                 pass_msg.value = ""
                 
-                # ✅ Update reference to show "Change Password" section
+                # Update reference to show "Change Password" section
                 has_password_ref["value"] = True
                 
-                # ✅ Show success snackbar
+                # Show success snackbar
                 page.snack_bar = ft.SnackBar(
-                    ft.Text("✅ Password set! You can now use email/password login."),
+                    ft.Text("Password set! You can now use email/password login."),
                     bgcolor=ft.Colors.GREEN
                 )
                 page.snack_bar.open = True
                 
-                # ✅ Rebuild UI to show "Change Password" section
                 build_ui()
                 
             except Exception as ex:
@@ -297,7 +291,6 @@ def profile_view_widget(page, on_nav):
                 pass_msg.color = "red"
                 page.update()
 
-    # ✅ 2FA Settings - NOW USING IMPORTED FUNCTION
     def show_2fa_settings(e):
         show_2fa_settings_dialog(page, db, user, build_ui)
 
@@ -547,7 +540,6 @@ def profile_view_widget(page, on_nav):
                 scroll=ft.ScrollMode.AUTO
             )
         else:
-            # ✅ EDIT MODE - DYNAMIC PASSWORD SECTION
             header_container.content = ft.Column([
                 ft.Container(
                     content=ft.Row([
@@ -601,7 +593,6 @@ def profile_view_widget(page, on_nav):
                     set_confirm_pass,
                     ft.ElevatedButton(
                         "Set Password",
-                        icon=ft.Icons.LOCK,
                         on_click=handle_set_password,
                         style=ft.ButtonStyle(bgcolor="blue700", color="white"),
                         width=200

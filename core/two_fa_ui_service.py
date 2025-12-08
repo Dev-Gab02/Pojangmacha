@@ -11,7 +11,6 @@ def show_2fa_settings_dialog(page, db, user, on_change_callback):
     """Show 2FA settings dialog with enable/disable toggle"""
     fresh_user = db.query(User).filter(User.id == user.id).first()
     
-    # Status in one row: "Status: 🟢 Enabled" with white "Status:" text
     status_row = ft.Row([
         ft.Text("Status:", size=14, weight="bold", color="white"),
         ft.Text(
@@ -82,7 +81,8 @@ def show_2fa_settings_dialog(page, db, user, on_change_callback):
         actions=[
             ft.TextButton("Close", on_click=close_2fa_settings)
         ],
-        actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0)
+        actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0),
+        bgcolor='black'
     )
     
     page.overlay.append(dialog)
@@ -182,14 +182,15 @@ def show_enable_2fa_dialog(page, db, user, on_success_callback):
                     alignment=ft.alignment.center
                 )
             ],
-            actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0)
+            actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0),
+            bgcolor='black'
         )
         page.overlay.append(dialog)
         dialog.open = True
         page.update()
     else:
         page.snack_bar = ft.SnackBar(
-            ft.Text("❌ Failed to enable 2FA"),
+            ft.Text("Failed to enable 2FA"),
             bgcolor=ft.Colors.RED
         )
         page.snack_bar.open = True
@@ -210,7 +211,7 @@ def show_disable_2fa_dialog(page, db, user, on_success_callback):
         if disable_2fa(db, user.id):
             user.two_fa_enabled = False
             page.snack_bar = ft.SnackBar(
-                ft.Text("✅ Two-Factor Authentication disabled"),
+                ft.Text("Two-Factor Authentication disabled"),
                 bgcolor=ft.Colors.ORANGE
             )
             page.snack_bar.open = True
@@ -221,7 +222,7 @@ def show_disable_2fa_dialog(page, db, user, on_success_callback):
                 on_success_callback()
         else:
             page.snack_bar = ft.SnackBar(
-                ft.Text("❌ Failed to disable 2FA"),
+                ft.Text("Failed to disable 2FA"),
                 bgcolor=ft.Colors.RED
             )
             page.snack_bar.open = True
@@ -249,7 +250,8 @@ def show_disable_2fa_dialog(page, db, user, on_success_callback):
                 style=ft.ButtonStyle(bgcolor="red", color="white")
             )
         ],
-        actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0)
+        actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0),
+        bgcolor='black'
     )
     page.overlay.append(dialog)
     dialog.open = True
@@ -298,7 +300,7 @@ def show_login_2fa_dialog(page, db, user, on_success_callback, on_cancel_callbac
         code = code_input.value
         
         if not code or not code.strip():
-            dialog_message.value = "❌ Please enter a code"
+            dialog_message.value = "Please enter a code"
             dialog_message.color = "red"
             page.update()
             return
@@ -313,7 +315,7 @@ def show_login_2fa_dialog(page, db, user, on_success_callback, on_cancel_callbac
                 on_success_callback(user)
                 return
             else:
-                dialog_message.value = "❌ Invalid 2FA code"
+                dialog_message.value = "Invalid 2FA code"
                 dialog_message.color = "red"
                 page.update()
         
@@ -325,7 +327,7 @@ def show_login_2fa_dialog(page, db, user, on_success_callback, on_cancel_callbac
                 close_2fa_dialog()
                 
                 page.snack_bar = ft.SnackBar(
-                    ft.Text("⚠️ Backup code used. Generate new codes in your profile."),
+                    ft.Text("Backup code used. Generate new codes in your profile."),
                     bgcolor=ft.Colors.ORANGE
                 )
                 page.snack_bar.open = True
@@ -333,12 +335,12 @@ def show_login_2fa_dialog(page, db, user, on_success_callback, on_cancel_callbac
                 on_success_callback(user)
                 return
             else:
-                dialog_message.value = "❌ Invalid backup code"
+                dialog_message.value = "Invalid backup code"
                 dialog_message.color = "red"
                 page.update()
         
         else:
-            dialog_message.value = "❌ Invalid format. Enter 6 digits or XXXX-XXXX"
+            dialog_message.value = "Invalid format. Enter 6 digits or XXXX-XXXX"
             dialog_message.color = "red"
             page.update()
     
@@ -353,7 +355,7 @@ def show_login_2fa_dialog(page, db, user, on_success_callback, on_cancel_callbac
                 dialog_message.value = f"Code sent to {user.email}"
                 dialog_message.color = "white"
             else:
-                dialog_message.value = "❌ Failed to send code"
+                dialog_message.value = "Failed to send code"
                 dialog_message.color = "red"
             page.update()
         
@@ -363,7 +365,6 @@ def show_login_2fa_dialog(page, db, user, on_success_callback, on_cancel_callbac
     def cancel_2fa(ev):
         """Cancel 2FA verification"""
         close_2fa_dialog()
-        # ✅ ADDED: Call cancel callback to reset login UI
         if on_cancel_callback:
             on_cancel_callback()
     
@@ -425,7 +426,8 @@ def show_login_2fa_dialog(page, db, user, on_success_callback, on_cancel_callbac
             )
         ],
         actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-        actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0)
+        actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0),
+        bgcolor='black'
     )
     
     page.overlay.append(two_fa_dialog)
@@ -474,13 +476,12 @@ def show_signup_verification_dialog(page, db, temp_user_data, on_success_callbac
     def verify_code_action(ev):
         """Verify code and create account"""
         if not verification_code_input.value or len(verification_code_input.value) != 6:
-            dialog_message.value = "❌ Please enter the 6-digit code"
+            dialog_message.value = "Please enter the 6-digit code"
             dialog_message.color = "red"
             page.update()
             return
         
         if verify_code(temp_user_data["email"], verification_code_input.value):
-            # Code is valid - create account
             new_user = create_user(
                 db,
                 temp_user_data["full_name"],
@@ -490,15 +491,14 @@ def show_signup_verification_dialog(page, db, temp_user_data, on_success_callbac
             )
             
             if new_user:
-                # ✅ Close dialog and call success callback
                 close_verification_dialog()
                 on_success_callback()
             else:
-                dialog_message.value = "❌ Error creating account"
+                dialog_message.value = "Error creating account"
                 dialog_message.color = "red"
                 page.update()
         else:
-            dialog_message.value = "❌ Invalid or expired code"
+            dialog_message.value = "Invalid or expired code"
             dialog_message.color = "red"
             page.update()
     
@@ -513,7 +513,7 @@ def show_signup_verification_dialog(page, db, temp_user_data, on_success_callbac
                 dialog_message.value = f"Code sent to {temp_user_data['email']}"
                 dialog_message.color = "white"
             else:
-                dialog_message.value = "❌ Failed to send code"
+                dialog_message.value = "Failed to send code"
                 dialog_message.color = "red"
             page.update()
         
@@ -523,7 +523,6 @@ def show_signup_verification_dialog(page, db, temp_user_data, on_success_callbac
     def cancel_verification(ev):
         """Cancel verification and return to signup form"""
         close_verification_dialog()
-        # ✅ Call cancel callback to reset signup UI
         if on_cancel_callback:
             on_cancel_callback()
     
@@ -535,7 +534,6 @@ def show_signup_verification_dialog(page, db, temp_user_data, on_success_callbac
         except Exception as ex:
             print(f"Close verification dialog error: {ex}")
     
-    # Resend button (centered text button)
     resend_btn = ft.Container(
         content=ft.TextButton(
             "Resend Code",
@@ -544,7 +542,6 @@ def show_signup_verification_dialog(page, db, temp_user_data, on_success_callbac
         alignment=ft.alignment.center
     )
     
-    # Verification Dialog (EXACTLY MATCHING LOGIN 2FA)
     verification_dialog = ft.AlertDialog(
         modal=True,
         title=ft.Container(
@@ -585,10 +582,10 @@ def show_signup_verification_dialog(page, db, temp_user_data, on_success_callbac
             )
         ],
         actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-        actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0)
+        actions_padding=ft.padding.only(left=20, right=20, bottom=20, top=0),
+        bgcolor='black'
     )
     
-    # ✅ EXACTLY MATCHING LOGIN (no page.dialog assignment)
     page.overlay.append(verification_dialog)
     verification_dialog.open = True
     page.update()
