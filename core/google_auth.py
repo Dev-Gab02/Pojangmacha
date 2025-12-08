@@ -22,7 +22,7 @@ def get_google_user_info(force_new_login=False):
     # If force_new_login, delete existing token to show account picker
     if force_new_login and os.path.exists(token_file):
         os.remove(token_file)
-        print("🔄 Forcing new Google login...")
+        print("Forcing new Google login...")
     
     # Check if token already exists
     if os.path.exists(token_file):

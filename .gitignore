@@ -2,7 +2,7 @@
 .env
 *.pyc
 __pycache__/
-assets/uploads/foods/
+assets/uploads/app
 pojangmacha.db
 credentials.json
 token.json

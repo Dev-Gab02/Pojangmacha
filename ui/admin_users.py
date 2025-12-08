@@ -34,7 +34,6 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 content=ft.Row([
                     # User info (left - expandable)
                     ft.Column([
-                        # ✅ Row 1: Name + 3-dot menu (SPACE_BETWEEN alignment)
                         ft.Row([
                             ft.Text(user.full_name, weight="bold", size=16, color='black', expand=True),
                             ft.PopupMenuButton(
@@ -74,14 +73,12 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 padding=10,
                 bgcolor='white',
                 border_radius=12,
-                # ✅ Min height for grid consistency
                 **({'height': USER_CARD_MIN_HEIGHT} if is_desktop else {})
             )
         )
     
     # ===================== GRID/LIST CONTAINERS =====================
     
-    # ✅ Desktop: GridView with 3 columns
     users_grid = ft.GridView(
         runs_count=DESKTOP_COLUMNS,
         max_extent=400,
@@ -91,7 +88,6 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
         expand=True
     )
 
-    # ✅ Mobile: Column (single column list)
     users_list = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, expand=True)
     
     # ===================== LOAD DATA =====================
@@ -115,6 +111,7 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
     def show_create_user_dialog(e=None):
         """Create new user with email verification"""
         
+        # Step 1 fields
         full_name_field = ft.TextField(label="Full Name", width=300)
         email_field = ft.TextField(label="Email", width=300)
         password_field = ft.TextField(label="Password", password=True, can_reveal_password=True, width=300)
@@ -128,53 +125,133 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 ft.dropdown.Option("admin", "Admin")
             ]
         )
-        
+        step1_message = ft.Text("", color="red")
+        send_verify_btn = ft.ElevatedButton(
+            "Send Verification Code",
+            width=300,
+            bgcolor="#FEB23F",
+            color="white"
+        )
+
+        # Step 2 fields
         verification_code_input = ft.TextField(
             label="Enter 6-digit code",
             width=300,
             max_length=6,
             text_align=ft.TextAlign.CENTER,
             keyboard_type=ft.KeyboardType.NUMBER,
-            visible=False
+            visible=True
         )
-        
-        message = ft.Text("", color="red")
-        
+        verify_create_btn = ft.ElevatedButton(
+            "Verify & Create User",
+            width=300,
+            bgcolor="#FEB23F",
+            color="white"
+        )
+        resend_code_btn = ft.TextButton("Resend Code")
+        step2_message = ft.Text("", color="red")
+
         temp_data = {}
         step = {"current": 1}
         
         step1_container = ft.Container()
         step2_container = ft.Container()
         
+        def show_step_1():
+            step1_message.value = ""
+            step1_container.content = ft.Column([
+                ft.Text("Create New User", size=18, weight="bold"),
+                ft.Text("Fill in the details below", size=12, color="grey700"),
+                full_name_field,
+                email_field,
+                password_field,
+                confirm_password_field,
+                role_dropdown,
+                send_verify_btn,
+                step1_message
+            ], spacing=10, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+            step1_container.visible = True
+            step2_container.visible = False
+            page.update()
+        
+        def show_step_2():
+            step2_message.value = ""
+            step2_container.content = ft.Column([
+                # Header: Back icon + Title
+                ft.Row([
+                    ft.IconButton(
+                        icon=ft.Icons.ARROW_BACK,
+                        tooltip="Back",
+                        on_click=lambda e: show_step_1(),
+                        icon_color="black"
+                    ),
+                    ft.Text("Verify Email", size=18, weight="bold", color="black"),
+                ], alignment=ft.MainAxisAlignment.START, spacing=8),
+
+                # Centered: Code sent to [email]
+                ft.Container(
+                    content=ft.Text(f"Code sent to {temp_data['email']}", size=12, color="grey700"),
+                    alignment=ft.alignment.center,
+                    padding=ft.padding.only(top=10, bottom=10)
+                ),
+
+                # Code input
+                ft.Container(
+                    content=verification_code_input,
+                    alignment=ft.alignment.center,
+                    padding=ft.padding.only(bottom=10)
+                ),
+
+                # Verify & Create User button
+                ft.Container(
+                    content=verify_create_btn,
+                    alignment=ft.alignment.center,
+                    padding=ft.padding.only(bottom=10)
+                ),
+
+                # Resend Code button
+                ft.Container(
+                    content=resend_code_btn,
+                    alignment=ft.alignment.center,
+                    padding=ft.padding.only(bottom=10)
+                ),
+
+                # Message (below resend code)
+                step2_message
+            ], spacing=0, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+            step1_container.visible = False
+            step2_container.visible = True
+            page.update()
+        
         def send_verification(ev):
             if not all([full_name_field.value, email_field.value, password_field.value, confirm_password_field.value]):
-                message.value = "❌ All fields are required!"
-                message.color = "red"
+                step1_message.value = "All fields are required!"
+                step1_message.color = "red"
                 page.update()
                 return
             
             if not is_valid_email(email_field.value):
-                message.value = "❌ Invalid email format!"
-                message.color = "red"
+                step1_message.value = "Invalid email format!"
+                step1_message.color = "red"
                 page.update()
                 return
             
             if password_field.value != confirm_password_field.value:
-                message.value = "❌ Passwords do not match!"
-                message.color = "red"
+                step1_message.value = "Passwords do not match!"
+                step1_message.color = "red"
                 page.update()
                 return
             
             if len(password_field.value) < 6:
-                message.value = "❌ Password too short (min 6 characters)!"
-                message.color = "red"
+                step1_message.value = "Password too short (min 6 characters)!"
+                step1_message.color = "red"
                 page.update()
                 return
             
             existing_user = db.query(User).filter(User.email == email_field.value).first()
             if existing_user:
-                message.value = "❌ Email already exists!"
-                message.color = "red"
+                step1_message.value = "Email already exists!"
+                step1_message.color = "red"
                 page.update()
                 return
             
@@ -183,8 +260,8 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
             temp_data["password"] = password_field.value
             temp_data["role"] = role_dropdown.value
             
-            message.value = "📧 Sending verification code..."
-            message.color = "blue"
+            step1_message.value = "Sending verification code..."
+            step1_message.color = "blue"
             send_verify_btn.disabled = True
             page.update()
             
@@ -195,10 +272,11 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 if success:
                     store_verification_code(temp_data["email"], code)
                     step["current"] = 2
+                    send_verify_btn.disabled = False
                     show_step_2()
                 else:
-                    message.value = "❌ Failed to send verification email"
-                    message.color = "red"
+                    step1_message.value = "Failed to send verification email"
+                    step1_message.color = "red"
                     send_verify_btn.disabled = False
                     page.update()
             
@@ -207,8 +285,8 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
         
         def verify_and_create(ev):
             if not verification_code_input.value or len(verification_code_input.value) != 6:
-                message.value = "❌ Please enter the 6-digit code"
-                message.color = "red"
+                step2_message.value = "Please enter the 6-digit code"
+                step2_message.color = "red"
                 page.update()
                 return
             
@@ -232,85 +310,41 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     page.update()
                     load_users()
                     page.snack_bar = ft.SnackBar(
-                        ft.Text(f"✅ User {new_user.email} created successfully!"),
+                        ft.Text(f"User {new_user.email} created successfully!"),
                         bgcolor=ft.Colors.GREEN,
                         open=True
                     )
                     page.update()
                 
                 except Exception as ex:
-                    message.value = f"❌ Error creating user: {ex}"
-                    message.color = "red"
+                    step2_message.value = f"Error creating user: {ex}"
+                    step2_message.color = "red"
                     page.update()
             else:
-                message.value = "❌ Invalid or expired code"
-                message.color = "red"
+                step2_message.value = "Invalid or expired code"
+                step2_message.color = "red"
                 page.update()
         
         def resend_code(ev):
-            message.value = "📧 Resending code..."
-            message.color = "blue"
+            step2_message.value = "Resending code..."
+            step2_message.color = "blue"
             page.update()
             
             def resend_thread():
                 if resend_verification_code(temp_data["email"]):
-                    message.value = "✅ New code sent to email"
-                    message.color = "green"
+                    step2_message.value = "New code sent to email"
+                    step2_message.color = "green"
                 else:
-                    message.value = "❌ Failed to send code"
-                    message.color = "red"
+                    step2_message.value = "Failed to send code"
+                    step2_message.color = "red"
                 page.update()
             
             thread = threading.Thread(target=resend_thread, daemon=True)
             thread.start()
         
-        def show_step_1():
-            step1_container.content = ft.Column([
-                ft.Text("Create New User", size=18, weight="bold"),
-                ft.Text("Fill in the details below", size=12, color="grey"),
-                full_name_field,
-                email_field,
-                password_field,
-                confirm_password_field,
-                role_dropdown,
-                send_verify_btn,
-                message
-            ], spacing=10, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-            
-            step1_container.visible = True
-            step2_container.visible = False
-            page.update()
-        
-        def show_step_2():
-            step2_container.content = ft.Column([
-                ft.Text("📧 Verify Email", size=18, weight="bold"),
-                ft.Text(f"Code sent to {temp_data['email']}", size=12, color="grey"),
-                verification_code_input,
-                verify_create_btn,
-                ft.TextButton("Resend Code", on_click=resend_code),
-                ft.TextButton("← Back", on_click=lambda e: show_step_1()),
-                message
-            ], spacing=10, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-            
-            verification_code_input.visible = True
-            step1_container.visible = False
-            step2_container.visible = True
-            page.update()
-        
-        send_verify_btn = ft.ElevatedButton(
-            "Send Verification Code",
-            on_click=send_verification,
-            width=300,
-            bgcolor="#FEB23F",  # ✅ Orange button
-            color="white"
-        )
-        verify_create_btn = ft.ElevatedButton(
-            "Verify & Create User",
-            on_click=verify_and_create,
-            width=300,
-            bgcolor="#FEB23F",  # ✅ Orange button
-            color="white"
-        )
+        send_verify_btn.on_click = send_verification
+        verify_create_btn.on_click = verify_and_create
+        resend_code_btn.on_click = resend_code
         
         dialog = ft.AlertDialog(
             modal=True,
@@ -320,11 +354,12 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     step2_container
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                 width=320,
-                height=440,
+                height=420,
                 padding=10,
-                alignment=ft.alignment.top_center  # ✅ Center content
+                alignment=ft.alignment.top_center
             ),
-            actions=[ft.TextButton("Cancel", on_click=lambda e: close_dialog(page, dialog))]
+            actions=[ft.TextButton("Cancel", on_click=lambda e: close_dialog(page, dialog))],
+            actions_alignment=ft.MainAxisAlignment.END  # Bottom right
         )
         
         show_step_1()
@@ -366,13 +401,13 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
         
         def update_user_data(e):
             if not all([full_name_field.value, email_field.value]):
-                message.value = "❌ Name and email are required!"
+                message.value = "Name and email are required!"
                 message.color = "red"
                 page.update()
                 return
             
             if not is_valid_email(email_field.value):
-                message.value = "❌ Invalid email format!"
+                message.value = "Invalid email format!"
                 message.color = "red"
                 page.update()
                 return
@@ -380,12 +415,12 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
             new_password = None
             if new_password_field.value:
                 if new_password_field.value != confirm_password_field.value:
-                    message.value = "❌ Passwords do not match!"
+                    message.value = "Passwords do not match!"
                     message.color = "red"
                     page.update()
                     return
                 if len(new_password_field.value) < 6:
-                    message.value = "❌ Password too short (min 6 characters)!"
+                    message.value = "Password too short (min 6 characters)!"
                     message.color = "red"
                     page.update()
                     return
@@ -411,17 +446,16 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 page.update()
                 load_users()
                 page.snack_bar = ft.SnackBar(
-                    ft.Text(f"✅ {msg}"),
+                    ft.Text(f"{msg}"),
                     bgcolor=ft.Colors.GREEN,
                     open=True
                 )
                 page.update()
             else:
-                message.value = f"❌ {msg}"
+                message.value = f"{msg}"
                 message.color = "red"
                 page.update()
         
-        # ✅ Truncate title to 25 characters with ellipsis
         title_text = f"Edit: {user.full_name[:22]}..." if len(user.full_name) > 22 else f"Edit: {user.full_name}"
         
         dialog = ft.AlertDialog(
@@ -449,7 +483,7 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 ], tight=True, scroll=ft.ScrollMode.AUTO, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10),
                 width=320,
                 height=360,
-                alignment=ft.alignment.top_center  # ✅ Center content
+                alignment=ft.alignment.top_center
             ),
             actions=[
                 ft.TextButton("Cancel", on_click=lambda e: close_dialog(page, dialog)),
@@ -482,14 +516,14 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 page.update()
                 load_users()
                 page.snack_bar = ft.SnackBar(
-                    ft.Text(f"✅ {msg}"),
+                    ft.Text(f"{msg}"),
                     bgcolor=ft.Colors.ORANGE,
                     open=True
                 )
                 page.update()
             else:
                 page.snack_bar = ft.SnackBar(
-                    ft.Text(f"❌ {msg}"),
+                    ft.Text(f"{msg}"),
                     bgcolor=ft.Colors.RED,
                     open=True
                 )
@@ -521,7 +555,6 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
         text="Users",
         icon=ft.Icons.PEOPLE,
         content=ft.Column([
-            # ✅ Title Row - TRANSPARENT (gradient shows through)
             ft.Container(
                 content=ft.Row([
                     ft.Text("Manage Users", size=20, weight="bold", color='black'),
@@ -534,15 +567,12 @@ def build_users_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     )
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 padding=10
-                # ✅ No bgcolor - gradient from parent shows through
             ),
             
-            # ✅ Grid/List with TRANSPARENT background (gradient from parent)
             ft.Container(
                 content=users_grid if is_desktop else users_list,
                 expand=True,
                 padding=10
-                # ✅ No gradient here - inherits from parent
             )
         ], expand=True, spacing=0)
     )

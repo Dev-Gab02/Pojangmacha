@@ -17,7 +17,7 @@ def food_view(
         page.snack_bar = ft.SnackBar(
             content=ft.Row([
                 ft.Icon(ft.Icons.CHECK_CIRCLE, color="white"),
-                ft.Text(f"✅ {item.name} added to cart!", color="white", weight="bold")
+                ft.Text(f"{item.name} added to cart!", color="white", weight="bold")
             ]),
             bgcolor="green700",
             duration=2000

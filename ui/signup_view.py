@@ -124,25 +124,25 @@ def signup_view(page: ft.Page):
     def send_verification(e):
         """Validate form and send verification code"""
         if not all([full_name.value, email.value, phone.value, password.value, confirm_password.value]):
-            message.value = "❌ All fields are required!"
+            message.value = "All fields are required!"
             message.color = "red"
             page.update()
             return
         
         if not is_valid_email(email.value):
-            message.value = "❌ Please enter a valid email address!"
+            message.value = "Please enter a valid email address!"
             message.color = "red"
             page.update()
             return
         
         if password.value != confirm_password.value:
-            message.value = "❌ Passwords do not match!"
+            message.value = "Passwords do not match!"
             message.color = "red"
             page.update()
             return
         
         if len(password.value) < 6:
-            message.value = "❌ Password must be at least 6 characters!"
+            message.value = "Password must be at least 6 characters!"
             message.color = "red"
             page.update()
             return
@@ -151,7 +151,7 @@ def signup_view(page: ft.Page):
         from models.user import User
         existing_user = db.query(User).filter(User.email == email.value).first()
         if existing_user:
-            message.value = "❌ Email already exists."
+            message.value = "Email already exists."
             message.color = "red"
             page.update()
             return
@@ -163,7 +163,7 @@ def signup_view(page: ft.Page):
         temp_user_data["password"] = password.value
 
         # Generate and send verification code
-        message.value = "📧 Sending verification code..."
+        message.value = "Sending verification code..."
         message.color = "blue"
         signup_btn.disabled = True
         page.update()
@@ -176,20 +176,17 @@ def signup_view(page: ft.Page):
             if success:
                 store_verification_code(email.value, code)
                 
-                # ✅ CHANGE: Define cancel callback to reset UI
                 def on_cancel():
                     message.value = ""
                     signup_btn.disabled = False
                     page.update()
                 
-                # ✅ CHANGE: Define success callback to redirect
                 def on_success():
                     page.go("/login")
                 
-                # ✅ CHANGE: Use show_signup_verification_dialog from two_fa_ui_service
                 show_signup_verification_dialog(page, db, temp_user_data, on_success, on_cancel)
             else:
-                message.value = "❌ Failed to send verification email"
+                message.value = "Failed to send verification email"
                 message.color = "red"
                 signup_btn.disabled = False
                 page.update()
@@ -200,7 +197,7 @@ def signup_view(page: ft.Page):
     # ===== GOOGLE SIGNUP =====
     def handle_google_signup(e):
         """Handle Google sign-up with real OAuth"""
-        message.value = "🔄 Opening Google Sign-In..."
+        message.value = "Opening Google Sign-In..."
         message.color = "blue"
         google_btn.disabled = True
         page.update()
@@ -210,7 +207,7 @@ def signup_view(page: ft.Page):
                 user_info = get_google_user_info(force_new_login=True)
                 
                 if not user_info or not user_info.get('email'):
-                    message.value = "❌ Google Sign-In failed or was cancelled"
+                    message.value = "Google Sign-In failed or was cancelled"
                     message.color = "red"
                     google_btn.disabled = False
                     page.update()
@@ -223,7 +220,6 @@ def signup_view(page: ft.Page):
                     picture=user_info.get('picture')
                 )
                 
-                # ✅ Google OAuth still auto-logs in (since it's OAuth-based)
                 page.session.set("user", {
                     "id": user.id,
                     "email": user.email,
@@ -237,7 +233,7 @@ def signup_view(page: ft.Page):
                     print("start_session error:", ex)
                 
                 page.snack_bar = ft.SnackBar(
-                    ft.Text(f"✅ Welcome, {user.full_name}!"),
+                    ft.Text(f"Welcome, {user.full_name}!"),
                     bgcolor=ft.Colors.GREEN
                 )
                 page.snack_bar.open = True
@@ -246,7 +242,7 @@ def signup_view(page: ft.Page):
                 
             except Exception as ex:
                 print(f"Google OAuth error: {ex}")
-                message.value = f"❌ Error: {str(ex)}"
+                message.value = f"Error: {str(ex)}"
                 message.color = "red"
                 google_btn.disabled = False
                 page.update()
@@ -363,9 +359,10 @@ def signup_view(page: ft.Page):
             scroll=ft.ScrollMode.AUTO,
             spacing=0),
             width=400,
-            height=700,
+            expand=True,
             padding=ft.padding.symmetric(horizontal=25),
-            bgcolor=WHITE
+            bgcolor=WHITE,
+            alignment=ft.alignment.center
         )
     )
     page.update()

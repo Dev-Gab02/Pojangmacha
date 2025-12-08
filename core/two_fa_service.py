@@ -59,7 +59,7 @@ def send_2fa_code(email):
     from email.mime.multipart import MIMEMultipart
     
     if not SMTP_EMAIL or not SMTP_PASSWORD:
-        print("❌ Email configuration missing")
+        print("Email configuration missing")
         return False
     
     try:
@@ -106,11 +106,11 @@ def send_2fa_code(email):
             "timestamp": time.time()
         }
         
-        print(f"✅ 2FA code sent to {email}")
+        print(f"2FA code sent to {email}")
         return True
     
     except Exception as e:
-        print(f"❌ Failed to send 2FA email: {e}")
+        print(f"Failed to send 2FA email: {e}")
         return False
 
 def verify_2fa_code(email: str, entered_code: str) -> bool:
@@ -152,7 +152,7 @@ def enable_2fa(db: Session, user_id: int) -> list:
     user.two_fa_enabled = True
     db.commit()
     
-    print(f"✅ 2FA enabled for {user.email}")
+    print(f"2FA enabled for {user.email}")
     return backup_codes
 
 def disable_2fa(db: Session, user_id: int) -> bool:
@@ -165,7 +165,7 @@ def disable_2fa(db: Session, user_id: int) -> bool:
     user.two_fa_backup_codes = None
     db.commit()
     
-    print(f"✅ 2FA disabled for {user.email}")
+    print(f"2FA disabled for {user.email}")
     return True
 
 def is_2fa_enabled(db: Session, email: str) -> bool:

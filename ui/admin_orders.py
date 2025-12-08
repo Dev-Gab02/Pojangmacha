@@ -44,7 +44,6 @@ def build_orders_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                         )
                     ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                     ft.Text(f"by {username}", size=12, color="grey700"),
-                    # ✅ Price and Buttons in same row
                     ft.Row([
                         ft.Text(f"Total: ₱{order.total_price:.2f}", size=14, weight="bold", color="green"),
                         ft.Row([
@@ -73,17 +72,15 @@ def build_orders_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
     
     # ===================== GRID/LIST CONTAINERS =====================
     
-    # ✅ Desktop: GridView with 3 columns (exact mobile card layout)
     orders_grid = ft.GridView(
         runs_count=DESKTOP_COLUMNS,  # 3 columns
-        max_extent=500,  # ✅ Responsive: allows cards to expand up to 500px
-        child_aspect_ratio=3.8,  # ✅ Width/Height = 3:1 (matches mobile proportions)
+        max_extent=500,  
+        child_aspect_ratio=3.8,  
         spacing=GRID_SPACING,
         run_spacing=GRID_RUN_SPACING,
         expand=True
     )
 
-    # ✅ Mobile: Column (single column list) - UNCHANGED
     orders_list = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO, expand=True)
     
     # ===================== LOAD DATA =====================
@@ -112,7 +109,7 @@ def build_orders_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
         db.commit()
         
         load_orders()
-        page.snack_bar = ft.SnackBar(ft.Text(f"✅ Order #{order.id} → {status}"), bgcolor=ft.Colors.GREEN, open=True)
+        page.snack_bar = ft.SnackBar(ft.Text(f"Order #{order.id} → {status}"), bgcolor=ft.Colors.GREEN, open=True)
         page.update()
     
     # ===================== BUILD TAB =====================
@@ -125,19 +122,15 @@ def build_orders_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
         text="Orders",
         icon=ft.Icons.SHOPPING_BAG,
         content=ft.Column([
-            # ✅ Title Row - TRANSPARENT (gradient shows through)
             ft.Container(
                 content=ft.Text("Manage Orders", size=20, weight="bold", color='black'),
                 padding=10
-                # ✅ No bgcolor - gradient from parent shows through
             ),
             
-            # ✅ Grid/List with TRANSPARENT background (gradient from parent)
             ft.Container(
                 content=orders_grid if is_desktop else orders_list,
                 expand=True,
                 padding=10
-                # ✅ No gradient here - inherits from parent
             )
         ], expand=True, spacing=0)
     )

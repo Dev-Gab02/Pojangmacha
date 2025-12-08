@@ -38,10 +38,10 @@ def reset_password_view(page: ft.Page):
         else:
             ok = verify_reset_token(db, email.value.strip(), token.value.strip(), new_password.value)
             if ok:
-                message.value = "✅ Password reset successfully! You can now log in."
+                message.value = "Password reset successfully! You can now log in."
                 message.color = "green"
             else:
-                message.value = "❌ Invalid or expired token."
+                message.value = "Invalid or expired token."
                 message.color = "red"
         page.update()
 
