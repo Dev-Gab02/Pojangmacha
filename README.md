@@ -217,3 +217,4 @@ I was responsible for testing and quality assurance. My focus was on developing 
 ![alt text](<assets/uploads/app/Screenshot 2025-12-09 022934.png>)
 ![alt text](<assets/uploads/app/Screenshot 2025-12-09 023534.png>)
 ![alt text](<assets/uploads/app/Screenshot 2025-12-09 023606.png>)
+<img width="377" height="688" alt="image" src="https://github.com/user-attachments/assets/98fd12ae-1da5-4d2e-9e14-8682f56d0936" />
