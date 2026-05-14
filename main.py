@@ -436,12 +436,12 @@ def main(page: ft.Page):
 
 if __name__ == "__main__":
     ft.app(
-    target=main
+    target=main,
+    port=int(os.environ.get("PORT", 8000)),
+    view=ft.WEB_BROWSER
 )
-#     ft.app(
-#     target=main,
-#     port=int(os.environ.get("PORT", 8000)),
-#     view=ft.WEB_BROWSER
-# )
     
+# ft.app(
+#     target=main
+# )
 #     ft.app(target=main, port=int(os.environ.get("PORT", 8000)), view=ft.AppView.FLET_APP)
