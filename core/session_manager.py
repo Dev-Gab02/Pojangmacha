@@ -13,7 +13,6 @@ def start_session(email: str):
     """Start a new session for the user"""
     with session_lock:
         active_sessions[email] = datetime.utcnow()
-        print(f"Session started for {email}")
 
 def end_session(email: str):
     """End the session for the user"""
@@ -29,7 +28,6 @@ def refresh_session(email: str):
             old_timestamp = active_sessions[email]
             active_sessions[email] = datetime.utcnow()
             elapsed = (datetime.utcnow() - old_timestamp).total_seconds()
-            print(f"Session refreshed for {email} (was idle for {elapsed:.1f}s)")
             return True
         else:
             print(f"Cannot refresh - no active session for {email}")

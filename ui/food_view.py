@@ -224,14 +224,19 @@ def food_view(
                         ft.Column([
                             ft.Text(item.name, weight="bold", size=14, color="black"),
                             ft.Text(item.description[:30] + "..." if len(item.description) > 30 else item.description, size=10, color="grey700"),
-                            ft.Text(f"₱{item.price:.2f}", color="green", size=14, weight="bold"),
+                            # Show stock and price row
+                            ft.Row([
+                                ft.Text(f"Stock: {item.stock}", size=12, color="blue", weight="bold"),
+                                ft.Text(f"₱{item.price:.2f}", color="green", size=14, weight="bold"),
+                            ], spacing=12) if item.stock > 0 else ft.Text("Sold Out", color="red", size=13, weight="bold")
                         ], spacing=3, expand=True),
                         ft.IconButton(
                             icon=ft.Icons.ADD_CIRCLE,
-                            icon_color="#FEB23F",
+                            icon_color="#FEB23F" if item.stock > 0 else "grey400",
                             icon_size=28,
-                            tooltip="Add to cart",
-                            on_click=lambda e, it=item: add_to_cart_directly(it)
+                            tooltip="Add to cart" if item.stock > 0 else "Out of stock",
+                            on_click=lambda e, it=item: add_to_cart_directly(it) if it.stock > 0 else None,
+                            disabled=item.stock <= 0
                         )
                     ], spacing=8, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                     bgcolor='white',
@@ -300,14 +305,19 @@ def food_view(
                             ft.Column([
                                 ft.Text(item.name, weight="bold", size=14, color="black"),
                                 ft.Text(item.description[:30] + "..." if len(item.description) > 30 else item.description, size=10, color="grey700"),
-                                ft.Text(f"₱{item.price:.2f}", color="green", size=14, weight="bold"),
+                                # Show stock and price row
+                                ft.Row([
+                                    ft.Text(f"Stock: {item.stock}", size=12, color="blue", weight="bold"),
+                                    ft.Text(f"₱{item.price:.2f}", color="green", size=14, weight="bold"),
+                                ], spacing=12) if item.stock > 0 else ft.Text("Sold Out", color="red", size=13, weight="bold")
                             ], spacing=3, expand=True),
                             ft.IconButton(
                                 icon=ft.Icons.ADD_CIRCLE,
-                                icon_color="#FEB23F",
+                                icon_color="#FEB23F" if item.stock > 0 else "grey400",
                                 icon_size=28,
-                                tooltip="Add to cart",
-                                on_click=lambda e, it=item: add_to_cart_directly(it)
+                                tooltip="Add to cart" if item.stock > 0 else "Out of stock",
+                                on_click=lambda e, it=item: add_to_cart_directly(it) if it.stock > 0 else None,
+                                disabled=item.stock <= 0
                             )
                         ], spacing=8, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                         bgcolor='white',

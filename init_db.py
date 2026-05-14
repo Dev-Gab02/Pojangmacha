@@ -11,14 +11,14 @@ def seed_food_items(db):
     existing = db.query(FoodItem).first()
     if not existing:
         sample_items = [
-            FoodItem(name="BimBimBowl", description="Rice, Egg, Carrot, Cucumber, Kangkong, Pork, Corn Etc.", category="Korean Bowls", price=100.0, image="assets/uploads/foods/bimbimbowl.jpg"),
-            FoodItem(name="Buldak Spicy Chicken", description="Korean fire chicken.", category="Noodles", price=90.0, image="assets/uploads/foods/hotspicy.jpg"),
-            FoodItem(name="Spam Bowl", description="Rice, Spam, Egg, Veggies, Corn Etc.", category="Korean Bowls", price=100.0, image="assets/uploads/foods/spambowl.jpg"),
-            FoodItem(name="Kimchi Fried Rice", description="Spicy kimchi rice.", category="Korean Bowls", price=180.0, image="assets/kimchi_rice.png"),
-            FoodItem(name="Ramen + Chicken Combo", description="Best combo meal.", category="Combo", price=400.0, image="assets/combo1.png"),
-            FoodItem(name="Extra Egg", description="Soft boiled egg topping.", category="Toppings", price=30.0, image="assets/egg.png"),
-            FoodItem(name="Iced Milk Tea", description="Refreshing milk tea.", category="Drinks", price=120.0, image="assets/drink1.png"),
-            FoodItem(name="Korean Soda", description="Sparkling Korean drink.", category="Drinks", price=80.0, image="assets/soda.png"),
+            FoodItem(name="BimBimBowl", description="Rice, Egg, Carrot, Cucumber, Kangkong, Pork, Corn Etc.", category="Korean Bowls", price=100.0, stock=15, image="assets/uploads/foods/bimbimbowl.jpg"),
+            FoodItem(name="Buldak Spicy Chicken", description="Korean fire chicken.", category="Noodles", price=90.0, stock=20, image="assets/uploads/foods/hotspicy.jpg"),
+            FoodItem(name="Spam Bowl", description="Rice, Spam, Egg, Veggies, Corn Etc.", category="Korean Bowls", price=100.0, stock=12, image="assets/uploads/foods/spambowl.jpg"),
+            FoodItem(name="Kimchi Fried Rice", description="Spicy kimchi rice.", category="Korean Bowls", price=180.0, stock=10, image="assets/kimchi_rice.png"),
+            FoodItem(name="Ramen + Chicken Combo", description="Best combo meal.", category="Combo", price=400.0, stock=8, image="assets/combo1.png"),
+            FoodItem(name="Extra Egg", description="Soft boiled egg topping.", category="Toppings", price=30.0, stock=50, image="assets/egg.png"),
+            FoodItem(name="Iced Milk Tea", description="Refreshing milk tea.", category="Drinks", price=120.0, stock=25, image="assets/drink1.png"),
+            FoodItem(name="Korean Soda", description="Sparkling Korean drink.", category="Drinks", price=80.0, stock=30, image="assets/soda.png"),
         ]
         db.add_all(sample_items)
         db.commit()

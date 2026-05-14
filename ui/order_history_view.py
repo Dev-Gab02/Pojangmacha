@@ -21,6 +21,11 @@ def order_history_widget(page, on_nav, update_cart_badge):
         .all()
     )
 
+    display_order_number_by_id = {
+        user_order.id: sequence
+        for sequence, user_order in enumerate(reversed(orders), start=1)
+    }
+
     order_column = ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO)
 
     def reorder_items(order_id):
@@ -130,7 +135,7 @@ def order_history_widget(page, on_nav, update_cart_badge):
                             content=ft.Column(
                                 [
                                     ft.Row([
-                                        ft.Text(f"Order #{order.id}", size=16, weight="bold", color="black"),
+                                        ft.Text(f"Order #{display_order_number_by_id.get(order.id, order.id)}", size=16, weight="bold", color="black"),
                                         ft.Container(
                                             content=ft.Text(order.status, color="white", size=11, weight="bold"),
                                             bgcolor="green" if order.status == "Completed" else "orange" if order.status == "Pending" else "red",

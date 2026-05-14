@@ -119,11 +119,15 @@ def home_view(page: ft.Page):
         db.commit()
         db.refresh(new_order)
 
-        # Add order items
+        # Add order items and decrease stock
         for item in cart_items:
             food = db.query(FoodItem).filter(FoodItem.name == item["name"]).first()
             if food:
                 db.add(OrderItem(order_id=new_order.id, food_id=food.id, quantity=item["quantity"], subtotal=item["subtotal"]))
+                # Decrease stock
+                food.stock -= item["quantity"]
+                if food.stock < 0:
+                    food.stock = 0
         db.commit()
 
         # Clear cart

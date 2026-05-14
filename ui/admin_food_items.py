@@ -89,8 +89,11 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                         # Row 2: Category
                         ft.Text(f"Category: {item.category}", size=12, color="grey700"),
                         
-                        # Row 3: Price
-                        ft.Text(f"₱{item.price:.2f}", color="green", weight="bold"),
+                        # Row 3: Price and Stock
+                        ft.Row([
+                            ft.Text(f"Stock: {item.stock}", size=12, color="blue", weight="bold"),
+                            ft.Text(f"₱{item.price:.2f}", color="green", weight="bold"),
+                        ], spacing=15)
                     ], spacing=5, expand=True),
                 ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 padding=10,
@@ -134,6 +137,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
         name_field = ft.TextField(label="Food Name", width=300)
         description_field = ft.TextField(label="Description", width=300, multiline=True)
         price_field = ft.TextField(label="Price", width=300, keyboard_type=ft.KeyboardType.NUMBER)
+        stock_field = ft.TextField(label="Stock", width=300, keyboard_type=ft.KeyboardType.NUMBER, value="0")
         category_dropdown = ft.Dropdown(
             label="Category",
             width=300,
@@ -196,6 +200,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     name=name_field.value.strip(),
                     description=description_field.value.strip() or "",
                     price=float(price_field.value),
+                    stock=int(stock_field.value) if stock_field.value else 0,
                     category=category_dropdown.value,
                     image=uploaded_image_path["value"]
                 )
@@ -231,6 +236,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     name_field,
                     description_field,
                     price_field,
+                    stock_field,
                     category_dropdown,
                     ft.Divider(),
                     ft.Text("Food Image", size=14, weight="bold"),
@@ -249,7 +255,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     message
                 ], tight=True, scroll=ft.ScrollMode.AUTO, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                 width=320, 
-                height=470,
+                height=520,
                 alignment=ft.alignment.top_center 
             ),
             actions=[
@@ -267,6 +273,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
         name_field = ft.TextField(label="Food Name", value=item.name, width=300)
         description_field = ft.TextField(label="Description", value=item.description or "", width=300, multiline=True)
         price_field = ft.TextField(label="Price", value=str(item.price), width=300, keyboard_type=ft.KeyboardType.NUMBER)
+        stock_field = ft.TextField(label="Stock", value=str(item.stock or 0), width=300, keyboard_type=ft.KeyboardType.NUMBER)
         category_dropdown = ft.Dropdown(
             label="Category",
             value=item.category,
@@ -345,6 +352,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 item.name = name_field.value.strip()
                 item.description = description_field.value.strip()
                 item.price = float(price_field.value)
+                item.stock = int(stock_field.value) if stock_field.value else 0
                 item.category = category_dropdown.value
                 item.image = uploaded_image_path["value"]
                 db.commit()
@@ -381,6 +389,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     name_field,
                     description_field,
                     price_field,
+                    stock_field,
                     category_dropdown,
                     ft.Divider(),
                     ft.Text("Food Image", size=14, weight="bold"),
@@ -399,7 +408,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     message
                 ], tight=True, scroll=ft.ScrollMode.AUTO, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                 width=320,  
-                height=470,
+                height=520,
                 alignment=ft.alignment.top_center 
             ),
             actions=[

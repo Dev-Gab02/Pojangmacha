@@ -10,4 +10,5 @@ class FoodItem(Base):
     description = Column(String)
     category = Column(String)  # Ramen, Buldak, Rice Bowl, Drinks
     price = Column(Float, nullable=False)
+    stock = Column(Integer, default=0, nullable=False)  # Stock/quantity of product
     image = Column(String, nullable=True)  # store path of image
