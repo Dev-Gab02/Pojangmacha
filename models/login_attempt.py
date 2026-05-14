@@ -6,8 +6,8 @@ class LoginAttempt(Base):
     __tablename__ = "login_attempts"
     
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, index=True, nullable=False)
-    ip_address = Column(String, nullable=True)
+    email = Column(String(255), index=True, nullable=False)
+    ip_address = Column(String(255), nullable=True)
     success = Column(Boolean, default=False)
     attempt_time = Column(DateTime, default=datetime.utcnow)
     locked_until = Column(DateTime, nullable=True)

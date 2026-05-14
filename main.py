@@ -40,6 +40,10 @@ DESKTOP_MIN_WIDTH = 1000
 DESKTOP_MIN_HEIGHT = 700
 BREAKPOINT = 800
 
+from services.blob_service import connection_string, container_name
+
+
+
 def main(page: ft.Page):
     page.window.width = MOBILE_WIDTH
     page.window.height = MOBILE_HEIGHT
@@ -51,6 +55,9 @@ def main(page: ft.Page):
     page.title = "Pojangmacha"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.START
+    
+    print(f"✓ Storage Connection: {'Loaded' if connection_string else 'MISSING'}")
+    print(f"✓ Container Name: {container_name or 'MISSING'}")
 
     if not page.session.contains_key("user"):
         page.session.set("user", None)
@@ -428,4 +435,13 @@ def main(page: ft.Page):
     page.go("/")
 
 if __name__ == "__main__":
-    ft.app(target=main, port=8000)
+    ft.app(
+    target=main
+)
+#     ft.app(
+#     target=main,
+#     port=int(os.environ.get("PORT", 8000)),
+#     view=ft.WEB_BROWSER
+# )
+    
+#     ft.app(target=main, port=int(os.environ.get("PORT", 8000)), view=ft.AppView.FLET_APP)

@@ -4,6 +4,7 @@ Food Items Management Tab for Admin Panel
 import flet as ft
 from models.food_item import FoodItem
 from models.audit_log import AuditLog
+from services.blob_service import upload_food_image
 from ui.admin_constants import (
     CATEGORIES, DESKTOP_COLUMNS,
     GRID_SPACING, GRID_RUN_SPACING
@@ -159,26 +160,31 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
 
         def on_file_pick(e: ft.FilePickerResultEvent):
             if e.files:
-                import shutil
                 src = e.files[0].path
-                upload_dir = "assets/uploads/foods"
-                os.makedirs(upload_dir, exist_ok=True)
-                filename = os.path.basename(src)
-                dest = os.path.join(upload_dir, filename)
-                
+
+                if not src:
+                    return
+
                 try:
-                    shutil.copy(src, dest)
-                    uploaded_image_path["value"] = dest
-                    
-                    image_preview.content = ft.Image(
-                        src=dest,
-                        width=300,
-                        height=120,
-                        fit=ft.ImageFit.COVER,
-                        border_radius=8
-                    )
-                    
-                    page.update()
+                    image_url = upload_food_image(src)
+
+                    if image_url:
+                        uploaded_image_path["value"] = image_url
+
+                        image_preview.content = ft.Image(
+                            src=image_url,
+                            width=300,
+                            height=120,
+                            fit=ft.ImageFit.COVER,
+                            border_radius=8
+                        )
+
+                        page.update()
+                    else:
+                        message.value = "Failed to upload image"
+                        message.color = "red"
+                        page.update()
+
                 except Exception as ex:
                     message.value = f"Error: {ex}"
                     message.color = "red"
@@ -284,7 +290,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
         
         uploaded_image_path = {"value": item.image or ""}
         
-        if item.image and os.path.exists(item.image):
+        if item.image:
             image_preview = ft.Container(
                 content=ft.Image(
                     src=item.image,
@@ -311,27 +317,30 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
 
         def on_file_pick(e: ft.FilePickerResultEvent):
             if e.files:
-                import shutil
                 src = e.files[0].path
-                upload_dir = "assets/uploads/foods"
-                os.makedirs(upload_dir, exist_ok=True)
-                filename = os.path.basename(src)
-                dest = os.path.join(upload_dir, filename)
-                
+                if not src:
+                    return
+
                 try:
-                    shutil.copy(src, dest)
-                    uploaded_image_path["value"] = dest
-                    
-                    image_preview.content = ft.Image(
-                        src=dest,
-                        width=300,
-                        height=120,
-                        fit=ft.ImageFit.COVER,
-                        border_radius=8
-                    )
-                    
-                    
-                    page.update()
+                    image_url = upload_food_image(src)
+
+                    if image_url:
+                        uploaded_image_path["value"] = image_url
+
+                        image_preview.content = ft.Image(
+                            src=image_url,
+                            width=300,
+                            height=120,
+                            fit=ft.ImageFit.COVER,
+                            border_radius=8
+                        )
+
+                        page.update()
+                    else:
+                        message.value = "Failed to upload image"
+                        message.color = "red"
+                        page.update()
+
                 except Exception as ex:
                     message.value = f"Error: {ex}"
                     message.color = "red"

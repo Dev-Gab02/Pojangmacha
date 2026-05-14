@@ -12,7 +12,12 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///pojangmacha.db")
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
 # Create engine (fu ture mode)
-engine = create_engine(DATABASE_URL, future=True, connect_args=connect_args)
+engine = create_engine(
+    DATABASE_URL,
+    future=True,
+    connect_args=connect_args,
+    pool_pre_ping=True
+)
 
 # SessionLocal factory: expire_on_commit=False avoids needing refresh() in many places
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False, future=True)
