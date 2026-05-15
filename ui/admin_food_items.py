@@ -163,7 +163,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 uploaded_file = e.files[0]
 
                 try:
-                    image_url = upload_food_image(uploaded_file.name)
+                    image_url = upload_food_image(uploaded_file.path)
 
                     if image_url:
                         uploaded_image_path["value"] = image_url
@@ -249,7 +249,8 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                         icon=ft.Icons.UPLOAD_FILE,
                         on_click=lambda e: file_picker.pick_files(
                             allowed_extensions=["png", "jpg", "jpeg"],
-                            allow_multiple=False
+                            allow_multiple=False,
+                            upload=True
                         ),
                         width=300,
                         bgcolor="#FEB23F", 
@@ -266,7 +267,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 ft.ElevatedButton("Save", on_click=save_food)
             ]
         )
-        page.dialog = dialog
+        page.overlay.append(dialog)
         dialog.open = True
         page.update()
     
@@ -317,7 +318,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 uploaded_file = e.files[0]
 
                 try:
-                    image_url = upload_food_image(uploaded_file.name)
+                    image_url = upload_food_image(uploaded_file.path)
 
                     if image_url:
                         uploaded_image_path["value"] = image_url
@@ -403,7 +404,8 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                         icon=ft.Icons.UPLOAD_FILE,
                         on_click=lambda e: file_picker.pick_files(
                             allowed_extensions=["png", "jpg", "jpeg"],
-                            allow_multiple=False
+                            allow_multiple=False,
+                            upload=True
                         ),
                         width=300,
                         bgcolor="#FEB23F",
@@ -420,7 +422,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 ft.ElevatedButton("Update", on_click=update_food)
             ]
         )
-        page.dialog = dialog
+        page.overlay.append(dialog)
         dialog.open = True
         page.update()
     
@@ -448,7 +450,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                 ft.ElevatedButton("Delete", on_click=confirm_delete, style=ft.ButtonStyle(bgcolor="red", color="white"))
             ]
         )
-        page.dialog = dialog
+        page.overlay.append(dialog)
         dialog.open = True
         page.update()
     
