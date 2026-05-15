@@ -160,13 +160,10 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
 
         def on_file_pick(e: ft.FilePickerResultEvent):
             if e.files:
-                src = e.files[0].path
-
-                if not src:
-                    return
+                uploaded_file = e.files[0]
 
                 try:
-                    image_url = upload_food_image(src)
+                    image_url = upload_food_image(uploaded_file.path)
 
                     if image_url:
                         uploaded_image_path["value"] = image_url
@@ -191,7 +188,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     page.update()
 
         file_picker = ft.FilePicker(on_result=on_file_pick)
-        page.overlay.append(file_picker)
+        page.services.append(file_picker)
         page.update()
 
         def save_food(e):
@@ -318,12 +315,10 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
 
         def on_file_pick(e: ft.FilePickerResultEvent):
             if e.files:
-                src = e.files[0].path
-                if not src:
-                    return
+                uploaded_file = e.files[0]
 
                 try:
-                    image_url = upload_food_image(src)
+                    image_url = upload_food_image(uploaded_file.path)
 
                     if image_url:
                         uploaded_image_path["value"] = image_url
@@ -348,7 +343,7 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                     page.update()
 
         file_picker = ft.FilePicker(on_result=on_file_pick)
-        page.overlay.append(file_picker)
+        page.services.append(file_picker)
         page.update()
 
         def update_food(e):
