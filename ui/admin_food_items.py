@@ -252,7 +252,8 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                         icon=ft.Icons.UPLOAD_FILE,
                         on_click=lambda e: file_picker.pick_files(
                             allowed_extensions=["png", "jpg", "jpeg"],
-                            allow_multiple=False
+                            allow_multiple=False,
+                            upload=True
                         ),
                         width=300,
                         bgcolor="#FEB23F", 
@@ -408,7 +409,8 @@ def build_food_items_tab(page: ft.Page, db, user_data: dict, is_desktop: bool):
                         icon=ft.Icons.UPLOAD_FILE,
                         on_click=lambda e: file_picker.pick_files(
                             allowed_extensions=["png", "jpg", "jpeg"],
-                            allow_multiple=False
+                            allow_multiple=False,
+                            upload=True
                         ),
                         width=300,
                         bgcolor="#FEB23F",
