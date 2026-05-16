@@ -1,5 +1,14 @@
 # Pojangmacha
 
+## Team Members:
+### Gabriel S. Concepcion 
+### Ma. Francheska R. Recierdo
+
+---
+## Live Demo & Video Presentation Link: https://youtu.be/2UKAUiYAsy0?feature=shared
+
+
+
 ## Project Overview & Problem Statement  
 Pojangmacha is a food-ordering and management system developed using **Python** and **Flet**. It provides a user-friendly interface for customers to browse menu items, place orders, and track their status in real time. Administrators can manage menu items, process customer orders, and view basic business analytics.  
 
@@ -172,7 +181,7 @@ Password: admin123
 - Check all navigation routes, authentication, menu management, cart, order history, and analytics dashboard.
 - Confirm window resizing and UI responsiveness on both desktop and mobile layouts.  
 
-## Team Roles & Contribution Matrix  
+<!-- ## Team Roles & Contribution Matrix  
 | Contributor | Role / Responsibilities | Contributions / Modules |
 |-------------|------------------------|------------------------|
 | Gabriel Concepcion (Dev-Gab02) | Backend logic / Core logic / Project lead/ Data model | Flet UI, main app flow, SQLite schema, init_db scripts |
@@ -199,7 +208,7 @@ As the backend and core logic lead, I focused on designing the data model, imple
 My primary role was UI development and documentation. I worked on designing user-friendly screens in Flet, ensuring the interface was intuitive for both customers and admins. Creating clear and comprehensive documentation, including the README and supporting materials, helped consolidate the team’s work into a reference that others can understand and follow. I learned how important UI consistency and clarity are in enhancing user experience, as well as how documentation strengthens team communication and project maintainability. This project improved my skills in front-end design, technical writing, and bridging design with functional implementation.  
 
 **John Wilbert Carullo:**  
-I was responsible for testing and quality assurance. My focus was on developing test scripts to validate the correctness of order processing, data persistence, and integration between UI and backend. Testing the real-time updates and live visualizations required careful planning and simulation to ensure reliability. This experience strengthened my skills in debugging, structured testing, and identifying edge cases in a dynamic application. I also gained insight into how testing interacts with both backend logic and UI components, reinforcing the importance of thorough validation in a full-stack system. Overall, contributing to Pojangmacha helped me understand quality assurance in a practical, project-driven environment. 
+I was responsible for testing and quality assurance. My focus was on developing test scripts to validate the correctness of order processing, data persistence, and integration between UI and backend. Testing the real-time updates and live visualizations required careful planning and simulation to ensure reliability. This experience strengthened my skills in debugging, structured testing, and identifying edge cases in a dynamic application. I also gained insight into how testing interacts with both backend logic and UI components, reinforcing the importance of thorough validation in a full-stack system. Overall, contributing to Pojangmacha helped me understand quality assurance in a practical, project-driven environment.  -->
 
 ---
 
