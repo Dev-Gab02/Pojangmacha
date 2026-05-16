@@ -5,7 +5,8 @@
 ### Ma. Francheska R. Recierdo
 
 ---
-## Live Demo & Video Presentation Link: https://youtu.be/2UKAUiYAsy0?feature=shared
+## Live Demo Link: pojangmacha-bzeqevenhneaeaf3.eastasia-01.azurewebsites.net
+## Video Presentation Link: https://youtu.be/2UKAUiYAsy0?feature=shared
 
 
 
